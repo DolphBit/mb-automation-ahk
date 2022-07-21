@@ -46,6 +46,7 @@ class GuiSettings
         this.events.Clear()
     }
 
+    ; Sub Class to handle events properly
     class EventHook
     {
         __New(hwnd, controls) {
@@ -74,8 +75,7 @@ class GuiSettings
             if (hwnd != this.hwnd)
                 Return
 
-            static SC_CLOSE := 0xF060
-            if (wParam = SC_CLOSE) {
+            if (wParam = C_SC_CLOSE) {
                 ; Store & write settings
                 GuiControlGet, bValue,, % this.controls.cboxIgnoreWarning
                 G_SETTINGS.SetIgnoreWarning(bValue)

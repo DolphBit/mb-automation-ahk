@@ -25,7 +25,8 @@ The exe is built with compile-ahk (see [CREDITS](/CREDITS.md))
 
 ### Formatting
 
-VSCode is used and the ahk extension does the formatting, it has apparently some odd bugs and therefore requires sometimes either manual formatting or a change in code to allow proper formatting of the code
+VSCode is used and the ahk extension does the formatting
+> ⚠️ Apparently formatting has some odd bugs and therefore requires sometimes either manual formatting or a change in code to allow proper formatting of the code
 
 ### Testing
 

@@ -58,6 +58,10 @@ Neuere Versionen *können* zu Fehlern führen (unwahrscheinlich) aber ggf. ände
 
 Siehe [SUPPORT](/SUPPORT.md)
 
+## Changelog
+
+Siehe [CHANGELOG](/CHANGELOG.md)
+
 ## Credits / Third Party
 
 Siehe [CREDITS](/CREDITS.md)

@@ -31,7 +31,7 @@ FocusWindowMB()
 }
 
 ; Check if a "Zahlung" is focused
-FocusZahlung()
+HasFocusZahlung()
 {
     ControlGetFocus, OutputVar, %C_WINDOW_MAIN_TITLE%
     if ErrorLevel or (!ArrIncludes(C_CTRL_ZAHLUNG_ROW_CLASSNN, OutputVar)) {

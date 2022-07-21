@@ -21,7 +21,8 @@ global G_PROCESSING_TASK := "None"
 
 ; Timing
 global G_DEFAULT_DELAY := A_KeyDelay
-global G_WAIT_TIMEOUT := 20
+global G_WAIT_TIMEOUT_COUNTER := 20
+global G_WAIT_TIMEOUT_SEC := 30
 
 ; Settings
 global G_SETTINGS_FILE := G_PROGRAMM_FOLDER "settings.ini"

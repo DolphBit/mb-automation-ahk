@@ -53,6 +53,7 @@ global G_SETTINGS = new Settings()
 global G_BUCHUNGEN = new Buchungen()
 global G_GUI_EDIT = new GuiEdit()
 global G_GUI_EDIT_SPLITT = new GuiEditSplitt()
+global G_GUI_VERWENDUNGEN = new GuiVerwendungen()
 
 UpdateGUI()
 
@@ -145,7 +146,7 @@ SendOk()
 ; Setzt eine VORHANDENE Verwendung und speichert
 VerwendungSetzen(Verwendung)
 {
-    if (!FocusWindowMB() || !FocusZahlung() || !Verwendung) {
+    if (!FocusWindowMB() || !HasFocusZahlung() || !Verwendung) {
         return False
     }
 
@@ -189,7 +190,7 @@ SendVerwendung(Verwendung) {
 BelegnummerSetzen(Belegnummer)
 {
     G_LOGGER.Debug("BelegnummerSetzen...")
-    if (!FocusWindowMB() || !FocusZahlung() || !Belegnummer) {
+    if (!FocusWindowMB() || !HasFocusZahlung() || !Belegnummer) {
         return False
     }
 
@@ -217,7 +218,7 @@ BelegnummerSetzen(Belegnummer)
 
 WaitForZahlungWindow()
 {
-    WinWaitActive, ahk_class %C_WIN_ZAHLUNG_CLASS%,, %G_WAIT_TIMEOUT%
+    WinWaitActive, ahk_class %C_WIN_ZAHLUNG_CLASS%,, %G_WAIT_TIMEOUT_SEC%
     if ErrorLevel
     {
         ErrorMessage("Zahlungsfenster (" . C_WIN_ZAHLUNG_CLASS . ") nicht offen!")
@@ -229,7 +230,7 @@ return True
 
 WaitForSteuerkategorieWindow()
 {
-    WinWaitActive, ahk_class %C_WIN_FIBU_KATEGORIE_AUSWAHL_CLASS%,, %G_WAIT_TIMEOUT%
+    WinWaitActive, ahk_class %C_WIN_FIBU_KATEGORIE_AUSWAHL_CLASS%,, %G_WAIT_TIMEOUT_SEC%
     if ErrorLevel
     {
         ErrorMessage("Steuerkateogrie Fenster (Weitere) (" . C_WIN_FIBU_KATEGORIE_AUSWAHL_CLASS . ") nicht offen!")
@@ -242,7 +243,7 @@ return True
 ; Führt eine Buchung durch, optional mit Verwendung
 BuchungDurchführen(Label, Konto, Steuersatz, Verwendung)
 {
-    if (!FocusWindowMB() || !FocusZahlung()) {
+    if (!FocusWindowMB() || !HasFocusZahlung()) {
         return False
     }
 
@@ -296,7 +297,7 @@ ExecuteSplittbuchung(index)
         return False
     }
 
-    if (!FocusWindowMB() || !FocusZahlung()) {
+    if (!FocusWindowMB() || !HasFocusZahlung()) {
         return False
     }
 
@@ -330,7 +331,7 @@ return True
 ; Führt eine Splittbuchung durch
 GoToSplittbuchung()
 {
-    if (!FocusWindowMB() || !FocusZahlung()) {
+    if (!FocusWindowMB() || !HasFocusZahlung()) {
         return False
     }
 
@@ -365,7 +366,7 @@ GoToSplittbuchung()
         ControlGet, state, enabled,, %C_CTRL_BTN_STEUERKONTO_TEXT%, ahk_class %C_WIN_ZAHLUNG_CLASS%
         Sleep 250
         waitCount += 1
-    } until (state == True or waitCount >= G_WAIT_TIMEOUT * 4)
+    } until (state == True or waitCount >= G_WAIT_TIMEOUT_COUNTER * 4)
     if (!state) {
         ErrorMessage(C_CTRL_BTN_STEUERKONTO_TEXT . " wurde nicht gefunden!")
         return False
@@ -394,7 +395,7 @@ GoToSplittbuchung()
             }
         }
 
-    } until (state == True or waitCount >= G_WAIT_TIMEOUT * 4)
+    } until (state == True or waitCount >= G_WAIT_TIMEOUT_COUNTER * 4)
     if (!state) {
         ErrorMessage(C_CTRL_BTN_SPLITTBUCHUNG_NEU_TEXT . " wurde nicht gefunden!")
         return False
@@ -426,7 +427,7 @@ SplittbuchungSteuerkategorie(Konto, Betrag, Steuersatz, Verwendung)
 
     G_LOGGER.Debug("SplittbuchungSteuerkategorie -> auswählen " . Konto . ", " . Betrag . ", " . Steuersatz)
 
-    WinWaitActive, ahk_class %C_WIN_BUCHUNG_ZORDNUNG_CLASS%,, %G_WAIT_TIMEOUT%
+    WinWaitActive, ahk_class %C_WIN_BUCHUNG_ZORDNUNG_CLASS%,, %G_WAIT_TIMEOUT_SEC%
     if ErrorLevel
     {
         ErrorMessage("Steuerkateogrie Fenster (" . C_WIN_BUCHUNG_ZORDNUNG_CLASS . ") nicht offen!")

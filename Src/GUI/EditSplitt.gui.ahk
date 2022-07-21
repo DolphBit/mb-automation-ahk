@@ -188,6 +188,7 @@ class GuiEditSplitt
         return data
     }
 
+    ; Sub Class to handle events properly
     class EventHook
     {
         __New(gui) {
@@ -276,14 +277,14 @@ class GuiEditSplitt
             this.gui.unmodifiedData := ""
             this.gui.modifiedData := ""
             this.gui.originalData := ""
-            Gui, Edit:Hide
+            try Gui, % this.gui.hwnd ":Hide"
             this.Clear()
         }
 
         OnButtonMoveEntry(from, to) {
             index := this.gui.index
 
-            this.gui.StoremodifiedData()
+            this.gui.StoreModifiedData()
             this.gui.modifiedData.buchungen := MoveArrayEntry(this.gui.modifiedData.buchungen, from, to)
 
             G_BUCHUNGEN.MoveEntry("splitt-entry", from, to, index)
@@ -293,7 +294,7 @@ class GuiEditSplitt
             Global CtrlIdSplitAmount
             index := this.gui.index
 
-            this.gui.StoremodifiedData()
+            this.gui.StoreModifiedData()
 
             GuiControlGet, AddSplitAmount, , % this.gui.controls.input_range
             G_BUCHUNGEN.AddSplittbuchungEntry(index, AddSplitAmount)
@@ -303,7 +304,7 @@ class GuiEditSplitt
 
         OnButtonRemoveEntry(index) {
             splittIndex := this.gui.index
-            this.gui.StoremodifiedData()
+            this.gui.StoreModifiedData()
             this.gui.modifiedData.buchungen.RemoveAt(index)
             G_BUCHUNGEN.RemoveSplittEntry(index, splittIndex)
         }
@@ -313,8 +314,7 @@ class GuiEditSplitt
                     return
             }
 
-            static SC_CLOSE := 0xF060
-            if (wParam = SC_CLOSE) {
+            if (wParam = C_SC_CLOSE) {
                 this.Clear()
                 return
             }

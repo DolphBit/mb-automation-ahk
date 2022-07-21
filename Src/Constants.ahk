@@ -14,6 +14,12 @@ global C_CTRL_ZAHLUNG_ROW_CLASSNN := ["TcxGridSite2", "TcxGridSite3"] ; Changes 
 global C_WIN_BUCHUNG_ZORDNUNG_CLASS := "TFO_BuchungsZuordnungSubKonto"
 global C_WIN_FIBU_KATEGORIE_AUSWAHL_CLASS := "TFO_FibuKategorieAuswahl"
 
+; Ads :/
+global C_WIN_AD_CLASS := "TFO_AdView"
+global C_CTRL_AD_CLOSE_CLASSNN := "TcxLabel1"
+global C_CTRL_AD_CLOSE_TEXT := "Fenster schliessen"
+
+; --
 ;global C_CTRL_BTN_STEUERKONTO_CLASSNN := "TcxImage5" ; <-- always changes ... :(
 global C_CTRL_BTN_STEUERKONTO_TEXT := "Steuerkategorie"
 ;global C_CTRL_BTN_SPLITTBUCHUNG_CLASSNN := "TcxImage3" ; <-- always changes ... :(
@@ -56,6 +62,5 @@ global C_KONTO_PRIVATENNAHMEN_SKR4 := 2100
 ; === Defaults
 global G_NEW_SPLITENTRY := { label: "Splittbuchung", betrag: 0, konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
 
-; Quick
-global G_QUICK_SPLIT := { label: "Quick Splittbuchung", buchungen: []}
-G_QUICK_SPLIT.buchungen.Push(G_NEW_SPLITENTRY)
+; Codes
+global C_SC_CLOSE := 0xF060

@@ -23,7 +23,7 @@ Class Buchungen {
     {
         this.Buchungen := []
         this.Splitt := []
-        this.Verwendungen := []
+        this.Verwendungen := [C_VERWENDUNGEN_KEINE_ANGABE]
 
         FileRead, JsonContent, %G_ENTRIES_FILE%
         if not ErrorLevel
@@ -38,8 +38,7 @@ Class Buchungen {
                     this.Splitt := entries.splitt
                 }
                 if (entries.verwendungen) {
-                    this.Verwendungen := entries.verwendungen
-                    this.Verwendungen.InsertAt(1, C_VERWENDUNGEN_KEINE_ANGABE)
+                    this.SetVerwendungen(entries.verwendungen)
                 }
             }
         }
@@ -52,7 +51,7 @@ Class Buchungen {
         entries.splitt := this.Splitt
         entries.verwendungen := []
         For i, val in this.Verwendungen {
-            if (i == 1) {
+            if (i == 1 || val == C_VERWENDUNGEN_KEINE_ANGABE) {
                 continue
             }
             entries.verwendungen.Push(val)
@@ -77,7 +76,7 @@ Class Buchungen {
         this.Splitt.Push({ label: "Neue Splittbuchung", buchungen: [] })
         this.WriteJSON()
 
-        UpdateGUI()
+        UpdateGUI(2)
     }
 
     AddSplittbuchungEntry(index, amount)
@@ -109,6 +108,12 @@ Class Buchungen {
         return ArrJoin("|", this.Verwendungen)
     }
 
+    SetVerwendungen(verwendungen)
+    {
+        this.Verwendungen := verwendungen
+        this.Verwendungen.InsertAt(1, C_VERWENDUNGEN_KEINE_ANGABE)
+    }
+
     AddVerwendung()
     {
         this.Verwendungen.Push("Neue Verwendung")
@@ -117,12 +122,16 @@ Class Buchungen {
 
     RemoveVerwendung(index)
     {
+        index += 1 ; we must add +1 because the first index is the default one and must stay
         this.Verwendungen.RemoveAt(index)
         this.WriteJSON()
     }
 
     MoveVerwendung(index, newIndex)
     {
+        index += 1 ; we must add +1 because the first index is the default one and must stay
+        newIndex += 1
+
         if (index < 1 || newIndex < 1 || index == newIndex) {
             return
         }
@@ -130,9 +139,7 @@ Class Buchungen {
             return
         }
 
-        value := this.Verwendungen[index]
-        this.Verwendungen.RemoveAt(index)
-        this.Verwendungen.InsertAt(newIndex, value)
+        this.Verwendungen := MoveArrayEntry(this.Verwendungen, index, newIndex)
         this.WriteJSON()
     }
 

@@ -101,7 +101,7 @@ UpdateGUI(SelectedTab := 1)
 
         Gui, Main:Add, Button, x+10 ys w90 hwndBtn, Verwendungen
         ImageButton.Create(Btn, G_STYLES.btn.info*)
-        fn := Func("GuiVerwendungen")
+        fn := Func("GuiButtonVerwendungen")
         GuiControl +g, % Btn, % fn
 
         ; ------
@@ -354,9 +354,9 @@ GuiRemoveEntry(type, i, label)
     G_BUCHUNGEN.RemoveEntry(type, i, label)
 }
 
-GuiVerwendungen()
+GuiButtonVerwendungen()
 {
-    ShowVerwendungGUI()
+    G_GUI_VERWENDUNGEN.Show()
 }
 
 GuiButtonVerwendung() {

@@ -5,105 +5,227 @@
 ; Verwendung GUI
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ShowVerwendungGUI()
+class GuiVerwendungen
 {
-    Global G_STYLES
+    __New() {
 
-    Gui, Main:+OwnDialogs +Disabled
-
-    Gui, Verwendung:Destroy
-    Gui, Verwendung:New,, mainTitle
-    Gui, Verwendung:Font, s8 normal, Segoe UI
-    Gui, Verwendung:+OwnerMain
-    Gui, Verwendung:Margin, 10, 10
-
-    Gui, Verwendung:Add, Text,, Verwendungen
-
-    global InputVerwendungen := []
-    For i, label in G_BUCHUNGEN.Verwendungen {
-        if (i == 1) {
-            continue
-        }
-
-        Gui, Verwendung:Add, Edit, xm w200 hwndCtrlId, %label%
-        InputVerwendungen[i] := CtrlId
-
-        if (i > 2) {
-            Gui, Verwendung:Add, Button, x+5 hwndBtn, /\
-            ImageButton.Create(Btn, G_STYLES.btn.info*)
-            fn := Func("GuiMoveVerwendung").Bind(i, i-1)
-            GuiControl +g, % Btn, % fn
-        } else {
-            Gui, Verwendung:Add, Text, w22 x+5,
-        }
-
-        if (i != G_BUCHUNGEN.Verwendungen.Length()) {
-            Gui, Verwendung:Add, Button, x+5 hwndBtn, \/
-            ImageButton.Create(Btn, G_STYLES.btn.info*)
-            fn := Func("GuiMoveVerwendung").Bind(i, i+1)
-            GuiControl +g, % Btn, % fn
-        } else {
-            Gui, Verwendung:Add, Text, w22 x+5,
-        }
-
-        Gui, Verwendung:Add, Button, x+5 hwndBtn, X
-        ImageButton.Create(Btn, G_STYLES.btn.danger_round*)
-        fn := Func("GuiRemoveVerwendung").Bind(i)
-        GuiControl +g, % Btn, % fn
     }
 
-    Gui, Verwendung:Add, Button, xm hwndBtn gGuiVerwendungenCancel, Abbrechen
-    ImageButton.Create(Btn, G_STYLES.btn.danger*)
+    Show()
+    {
+        if (this.events) {
+            this.events.Clear()
+        }
 
-    Gui, Verwendung:Add, Button, x+100 hwndBtn gGuiVerwendungenAdd, Neu
-    ImageButton.Create(Btn, G_STYLES.btn.main*)
+        Gui, Main:+OwnDialogs +Disabled
 
-    Gui, Verwendung:Add, Button, x+40 hwndBtn gGuiVerwendungenSave, Speichern
-    ImageButton.Create(Btn, G_STYLES.btn.success*)
+        Gui, Verwendung:New, +hwndhGui
+        this.hwnd := hGui
+        this.controls := {}
 
-    Gui, Verwendung:Show,,Verwendungen
-}
+        if (!this.originalData) {
+            this.originalData := G_BUCHUNGEN.Verwendungen.Clone()
+        }
 
-VerwendungGuiClose() {
-    Gui, Main:-Disabled
-    Gui, Verwendung:Hide
-    Gui, Verwendung:Destroy
-}
+        Gui, Verwendung:+OwnerMain
+        Gui, Verwendung:Margin, 10, 10
+        Gui, Verwendung:Font, s8 normal, Segoe UI
+        Gui, Verwendung:Color, % G_STYLES.main.color
 
-GuiVerwendungenSave()
-{
-    global InputVerwendungen
-    Gui, Verwendung:Submit, NoHide
+        this.controls.rows := []
+        For i, label in G_BUCHUNGEN.Verwendungen {
+            if (i == 1) {
+                Gui, Verwendung:Add, Text,, % label
+                continue ; 1 is the default one, skip it
+            }
 
-    For i, value in InputVerwendungen {
-        GuiControlGet, ValueInput, , % value
-        G_BUCHUNGEN.Verwendungen[i] := ValueInput
+            row := {}
+
+            Gui, Verwendung:Add, Edit, xm w200 hwndCtrlId, % label
+            row.input := CtrlId
+
+            if (i > 2) {
+                Gui, Verwendung:Add, Button, x+5 hwndBtn, /\
+                ImageButton.Create(Btn, G_STYLES.btn.info*)
+                row.btn_move_up := Btn
+            } else {
+                Gui, Verwendung:Add, Text, w22 x+5,
+            }
+
+            if (i != G_BUCHUNGEN.Verwendungen.Length()) {
+                Gui, Verwendung:Add, Button, x+5 hwndBtn, \/
+                ImageButton.Create(Btn, G_STYLES.btn.info*)
+                row.btn_move_down := Btn
+            } else {
+                Gui, Verwendung:Add, Text, w22 x+5,
+            }
+
+            Gui, Verwendung:Add, Button, x+5 hwndBtn, X
+            ImageButton.Create(Btn, G_STYLES.btn.danger_round*)
+            row.btn_remove := Btn
+
+            this.controls.rows.Push(row)
+        }
+
+        if (!this.unmodifiedData) {
+            this.unmodifiedData := this.GetInputValues()
+        }
+        this.modifiedData := this.GetInputValues()
+
+        Gui, Verwendung:Add, Button, xm hwndBtn, Abbrechen
+        ImageButton.Create(Btn, G_STYLES.btn.danger*)
+        this.controls.btn_cancel := Btn
+
+        Gui, Verwendung:Add, Button, x+100 hwndBtn, Neu
+        ImageButton.Create(Btn, G_STYLES.btn.main*)
+        this.controls.btn_add := Btn
+
+        Gui, Verwendung:Add, Button, x+40 hwndBtn, Speichern
+        ImageButton.Create(Btn, G_STYLES.btn.success*)
+        this.controls.btn_save := Btn
+
+        Gui, Verwendung:Show,, Verwendungen
+
+        this.events := new this.EventHook(this)
     }
 
-    G_BUCHUNGEN.WriteJSON()
+    __Delete() {
+        try Gui, % this.hwnd . ":Destroy"
+        this.events.Clear()
+    }
 
-    VerwendungGuiClose()
-}
+    ; Get all values (= Verwendung) from input fields
+    GetInputValues() {
+        values := []
+        For i, row in this.controls.rows {
+            GuiControlGet, ValueInput, , % row.input
+            values.Push(ValueInput)
+        }
+        return values
+    }
 
-GuiVerwendungenCancel()
-{
-    VerwendungGuiClose()
-}
+    ; Sub Class to handle events properly
+    class EventHook
+    {
+        __New(ui) {
+            this.ui := ui
 
-GuiVerwendungenAdd()
-{
-    G_BUCHUNGEN.AddVerwendung()
-    ShowVerwendungGUI()
-}
+            fn := ObjBindMethod(this, "OnButtonSave")
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_save, % fn
 
-GuiMoveVerwendung(index, newIndex)
-{
-    G_BUCHUNGEN.MoveVerwendung(index, newIndex)
-    ShowVerwendungGUI()
-}
+            fn := ObjBindMethod(this, "OnButtonCancel")
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_cancel, % fn
 
-GuiRemoveVerwendung(index)
-{
-    G_BUCHUNGEN.RemoveVerwendung(index)
-    ShowVerwendungGUI()
+            fn := ObjBindMethod(this, "OnButtonAdd")
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_add, % fn
+
+            For i in this.ui.controls.rows
+            {
+                fn := ObjBindMethod(this, "OnButtonRemoveEntry", i)
+                GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.rows[i].btn_remove, % fn
+
+                if (this.ui.controls.rows[i].btn_move_up) {
+                    fn := ObjBindMethod(this, "OnButtonMoveEntry", i, i-1)
+                    GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.rows[i].btn_move_up, % fn
+                }
+
+                if (this.ui.controls.rows[i].btn_move_down) {
+                    fn := ObjBindMethod(this, "OnButtonMoveEntry", i, i+1)
+                    GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.rows[i].btn_move_down, % fn
+                }
+            }
+
+            this.OnSysCommand := ObjBindMethod(this, "WM_SYSCOMMAND")
+            OnMessage(0x112, this.OnSysCommand)
+        }
+
+        ; Called on Move Up / Down buttons and changes array position
+        OnButtonMoveEntry(from, to) {
+            this.ui.modifiedData := MoveArrayEntry(this.GetInputValues(), from, to)
+            G_BUCHUNGEN.MoveVerwendung(from, to)
+            this.ui.Show()
+        }
+
+        ; Called on add button click and adds a new entry
+        OnButtonAdd() {
+            this.ui.modifiedData := this.GetInputValues()
+            G_BUCHUNGEN.AddVerwendung()
+            this.ui.Show()
+        }
+
+        ; Called on remove button click and removes the given {index} entry
+        OnButtonRemoveEntry(index) {
+            G_BUCHUNGEN.RemoveVerwendung(index)
+            this.ui.Show()
+        }
+
+        ; Called on save button click and saves the current Verwendungen and closes UI
+        OnButtonSave() {
+            Gui, % this.ui.hwnd ":Submit", NoHide
+
+            G_BUCHUNGEN.SetVerwendungen(this.ui.GetInputValues())
+            G_BUCHUNGEN.WriteJSON()
+
+            UpdateGUI(3)
+
+            this.CloseGui(true)
+        }
+
+        ; Cancel any changes, restore original values and closes ui
+        ; Will warn user if any of the input fields have changed
+        OnButtonCancel() {
+            this.CloseGui()
+        }
+
+        ; Called when the UI should be closed
+        CloseGui(save = false) {
+            if(!save) {
+                ; compare if input values differ
+                if (!ArrayEquals(this.ui.unmodifiedData, this.ui.GetInputValues())) {
+                    MsgBox, 4, % " ", Schließen ohne zu speichern?
+                    IfMsgBox No, return false
+                }
+
+                ; reapply the original data, because we eventually applied some modifications (add/remove)
+                G_BUCHUNGEN.Verwendungen := this.ui.originalData
+                G_BUCHUNGEN.WriteJSON()
+            }
+
+            this.ui.unmodifiedData := ""
+            this.ui.modifiedData := ""
+            this.ui.originalData := ""
+            try Gui, % this.ui.hwnd ":Hide"
+
+            this.save := save
+            this.CloseGui := ""
+            this.Clear()
+            return true
+        }
+
+        ; Windows Events
+        WM_SYSCOMMAND(wParam, lParam, msg, hwnd) {
+            if (hwnd != this.ui.hwnd)
+                Return
+
+            if (wParam = C_SC_CLOSE) {
+                if(!this.CloseGui()) {
+                    return 1
+                }
+                return
+            }
+            return
+        }
+
+        ; Called to clear the event hooks and does cleanup + destroy ui
+        Clear() {
+            Gui, Main:-Disabled
+            try Gui, % this.ui.hwnd . ":Destroy"
+
+            ; Cleanup
+            OnMessage(0x112, this.OnSysCommand, 0)
+            this.OnSysCommand := ""
+            this.Clear := ""
+            this.save := false
+        }
+    }
 }

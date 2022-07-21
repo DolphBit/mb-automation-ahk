@@ -56,11 +56,13 @@ Class Settings {
             MsgBox, Settings Ordner konnte nicht erstellt werden (das ist nicht gut!)
     }
 
+    ; Toggle ignore warning, which will close automatically any warning after OK (from Zahlung)
     SetIgnoreWarning(on)
     {
         this.bIgnoreWarning := on
     }
 
+    ; Toggle ad check mode, which will automatically close the ad window
     SetNoAdsMode(on)
     {
         this.bNoAdsMode := on
@@ -71,6 +73,7 @@ Class Settings {
         }
     }
 
+    ; Start Ad window check
     StartNoAdsMode()
     {
         this.StopNoAdsMode()
@@ -78,15 +81,35 @@ Class Settings {
         SetTimer, % fn, 1000
     }
 
+    ; Stop Ad window check
     StopNoAdsMode()
     {
         fn := this["NoAdsModePoll"].bind(this)
         SetTimer, % fn, Off
     }
 
+    ; Checks for annoying ad window and automatically closes it
     NoAdsModePoll()
     {
-        OutputDebug, % "ads check..."
-        ; TODO check for annoying ads window and close it :)
+        if(!HasExeFocus()) {
+            return
+        }
+
+        WinWaitActive, ahk_class %C_WIN_AD_CLASS%,, 5
+        if ErrorLevel {
+            return
+        }
+
+        ControlGet, CtrlButton, Hwnd,, %C_CTRL_AD_CLOSE_CLASSNN%, ahk_class %C_WIN_AD_CLASS%
+        if ErrorLevel {
+            G_LOGGER.Debug("Found ad window but can't find the close button!")
+            ; Should we eventually fall back ato ALT+F4? I highly dislike this hotkey for obvious reason...
+            return
+        }
+
+        G_LOGGER.Debug("Try to close ad window now...")
+        SetControlDelay -1
+        try ControlClick,, ahk_id %CtrlButton%
+        SetControlDelay %G_DEFAULT_DELAY%
     }
 }

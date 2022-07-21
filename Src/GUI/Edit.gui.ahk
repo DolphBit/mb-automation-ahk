@@ -79,6 +79,7 @@ class GuiEdit
         this.events.Clear()
     }
 
+    ; Sub Class to handle events properly
     class EventHook
     {
         __New(gui) {
@@ -128,8 +129,7 @@ class GuiEdit
                     return
             }
 
-            static SC_CLOSE := 0xF060
-            if (wParam = SC_CLOSE) {
+            if (wParam = C_SC_CLOSE) {
                 this.Clear()
                 return
             }
