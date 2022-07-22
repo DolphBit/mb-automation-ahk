@@ -1,11 +1,13 @@
 ﻿#NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
+; UI for Buchung
 class GuiEdit
 {
     __New() {
     }
 
+    ; Show the UI for the given {index} Buchung
     Show(index)
     {
         if (this.events) {
@@ -71,6 +73,10 @@ class GuiEdit
 
         Gui, Edit:Show,, % "Bearbeite " . this.buchung.label
 
+        if (!this.unmodifiedData) {
+            this.unmodifiedData := this.FetchAllData()
+        }
+
         this.events := new this.EventHook(this)
     }
 
@@ -79,39 +85,46 @@ class GuiEdit
         this.events.Clear()
     }
 
+    ; Get all control values
+    FetchAllData() {
+        data := {}
+
+        GuiControlGet, Val,, % this.controls.label
+        data.label := Val
+
+        GuiControlGet, Val,, % this.controls.verwendung
+        data.verwendung := Val
+
+        GuiControlGet, Val,, % this.controls.konto
+        data.konto := Val
+
+        GuiControlGet, Val,, % this.controls.steuer
+        data.steuer := Val
+
+        return data
+    }
+
     ; Sub Class to handle events properly
     class EventHook
     {
-        __New(gui) {
-            hwnd := gui.hwnd
-            this.gui := gui
+        __New(ui) {
+            this.ui := ui
 
             fn := ObjBindMethod(this, "OnButtonSave")
-            GuiControl, %hwnd%:+g, % this.gui.controls.btn_save, % fn
-            fn := ObjBindMethod(this, "OnButtonCancel")
-            GuiControl, %hwnd%:+g, % this.gui.controls.btn_cancel, % fn
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_save, % fn
+            fn := ObjBindMethod(this, "CloseGui")
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_cancel, % fn
 
             this.OnSysCommand := ObjBindMethod(this, "WM_SYSCOMMAND")
             OnMessage(0x112, this.OnSysCommand)
         }
 
+        ; Called on button click and will save the Buchung
         OnButtonSave() {
-            Gui, % this.gui.hwnd ":Submit", NoHide
+            Gui, % this.ui.hwnd ":Submit", NoHide
 
-            index := this.gui.index
-            G_BUCHUNGEN.Buchungen[index] = {}
-
-            GuiControlGet, val,, % this.gui.controls.label
-            G_BUCHUNGEN.Buchungen[index].label := val
-
-            GuiControlGet, val,, % this.gui.controls.verwendung
-            G_BUCHUNGEN.Buchungen[index].verwendung := val
-
-            GuiControlGet, val,, % this.gui.controls.steuer
-            G_BUCHUNGEN.Buchungen[index].steuer := val
-
-            GuiControlGet, val,, % this.gui.controls.konto
-            G_BUCHUNGEN.Buchungen[index].konto := val
+            index := this.ui.index
+            G_BUCHUNGEN.Buchungen[index] = this.ui.FetchAllData()
 
             G_BUCHUNGEN.WriteJSON()
             UpdateGUI()
@@ -119,23 +132,40 @@ class GuiEdit
             this.Clear()
         }
 
-        OnButtonCancel() {
-            Gui, % this.gui.hwnd ":Hide"
+        ; Called when the UI should be closed
+        ; If {save} is false, the user will be warned if he loses saved data (if changed)
+        CloseGui(save = false) {
+            if (!save) {
+                ; compare if input values differ
+                if (!ArrayEquals(this.ui.unmodifiedData, this.ui.FetchAllData())) {
+                    MsgBox, 4, % " ", Schließen ohne zu speichern?
+                    IfMsgBox No, return false
+                }
+            }
+
+            this.ui.unmodifiedData := ""
+
+            this.CloseGui := ""
             this.Clear()
+            return true
         }
 
+        ; Windows Events
         WM_SYSCOMMAND(wParam, lParam, msg, hwnd) {
-            if (hwnd != this.gui.hwnd) {
-                    return
+            if (hwnd != this.ui.hwnd) {
+                return
             }
 
             if (wParam = C_SC_CLOSE) {
+                if (!this.CloseGui()) {
+                    return 1
+                }
                 this.Clear()
                 return
             }
-            return
         }
 
+        ; Called to clear the event hooks and does cleanup + destroy ui
         Clear() {
             Gui, Main:-Disabled
             Gui, %A_Gui%:Destroy

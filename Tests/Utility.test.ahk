@@ -35,7 +35,7 @@ assert.equal(cleanupAmount("Betrag -123,00 €"), "-123,00")
 assert.label("cleanupAmount #4")
 assert.equal(cleanupAmount("-1,00"), "-1,00")
 
-; ---                
+; ---
 assert.label("ObjectEquals #1")
 assert.true(ObjectEquals({ a: 1, b: 2 }, { a: 1, b: 2 }))
 
@@ -54,7 +54,7 @@ assert.false(ObjectEquals({ test: 55 }, { test: "55" }))
 assert.label("ObjectEquals #6")
 assert.false(ObjectEquals({ test: [1,2] }, { test: [2,3] }))
 
-; ---                
+; ---
 assert.label("NumberStringEquals #1")
 assert.true(NumberStringEquals(1,1))
 
@@ -67,7 +67,7 @@ assert.false(NumberStringEquals(1,"1"))
 assert.label("NumberStringEquals #1")
 assert.false(NumberStringEquals("1",2))
 
-; ---                
+; ---
 assert.label("ArrayEquals #1")
 assert.true(ArrayEquals([1, "2", ""], [1, "2", ""]))
 
@@ -80,7 +80,7 @@ assert.true(ArrayEquals([], []))
 assert.label("ArrayEquals #4")
 assert.true(ArrayEquals([1], [1]))
 
-; ---                
+; ---
 assert.label("IsArray #1")
 assert.true(IsArray([]))
 
@@ -96,14 +96,14 @@ assert.false(IsArray(1))
 assert.label("IsArray #5")
 assert.false(IsArray({x:1}))
 
-; ---                
+; ---
 assert.label("ArrJoin #1")
 assert.equal(ArrJoin(",", [1,2,3]), "1,2,3")
 
 assert.label("ArrJoin #2")
 assert.equal(ArrJoin("", [1,2,3,4]), "1234")
 
-; ---                
+; ---
 assert.label("MoveArrayEntry #1")
 assert.equal(ArrJoin(",", MoveArrayEntry([1,2,3], 1, 3)), "2,3,1")
 
@@ -113,7 +113,7 @@ assert.equal(ArrJoin(",", MoveArrayEntry([1,2,3], 1, 1)), "1,2,3")
 assert.label("MoveArrayEntry #3")
 assert.equal(ArrJoin(",", MoveArrayEntry([1,2,3], 5, 1)), "1,2,3")
 
-; ---                
+; ---
 aObj := { a: 1, b: { c: 3 } }
 bObj := DeepClone(aObj)
 

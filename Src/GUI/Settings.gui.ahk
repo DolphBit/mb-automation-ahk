@@ -1,13 +1,18 @@
 ﻿#NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; Settings GUI
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+; UI for Settings
 class GuiSettings
 {
     __New() {
+        this.Show()
+    }
+
+    ; Show UI
+    Show() {
+        if (this.events) {
+            this.events.Clear()
+        }
 
         Gui, Main:+OwnDialogs +Disabled
         Gui, Settings:New, +hwndhGui
@@ -38,42 +43,43 @@ class GuiSettings
 
         Gui, Settings:Show,,Einstellungen
 
-        this.events := new this.EventHook(this.hwnd, this.controls)
+        this.events := new this.EventHook(this)
     }
 
     __Delete() {
-        try Gui, % this.hwnd . ":Destroy"
         this.events.Clear()
     }
 
     ; Sub Class to handle events properly
     class EventHook
     {
-        __New(hwnd, controls) {
-            this.hwnd := hwnd
-            this.controls := controls
+        __New(ui) {
+            this.ui := ui
 
             fn := ObjBindMethod(this, "OnButtonOpenSettingsFolder")
-            GuiControl, %hwnd%:+g, % this.controls.btnOpenSettingsFolder, % fn
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btnOpenSettingsFolder, % fn
             fn := ObjBindMethod(this, "OnButtonGithub")
-            GuiControl, %hwnd%:+g, % this.controls.btnOpenGitHub, % fn
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btnOpenGitHub, % fn
 
             this.OnSysCommand := ObjBindMethod(this, "WM_SYSCOMMAND")
             OnMessage(0x112, this.OnSysCommand)
         }
 
+        ; Called on button click and open the settings folder
         OnButtonOpenSettingsFolder() {
             G_SETTINGS.OpenSettingsFolder()
         }
 
+        ; Called on button click and opens the github repo in web browser
         OnButtonGithub() {
-            Global G_GITHUB_REPO
             Run, % G_GITHUB_REPO
         }
 
+        ; Windows Events
         WM_SYSCOMMAND(wParam, lParam, msg, hwnd) {
-            if (hwnd != this.hwnd)
-                Return
+            if (hwnd != this.ui.hwnd) {
+                return
+            }
 
             if (wParam = C_SC_CLOSE) {
                 ; Store & write settings
@@ -88,12 +94,12 @@ class GuiSettings
                 this.Clear()
                 return
             }
-            return
         }
 
+        ; Called to clear the event hooks and does cleanup + destroy ui
         Clear() {
             Gui, Main:-Disabled
-            try Gui, % this.gui.hwnd . ":Destroy"
+            try Gui, %A_Gui%:Destroy
 
             ; Cleanup
             OnMessage(0x112, this.OnSysCommand, 0)

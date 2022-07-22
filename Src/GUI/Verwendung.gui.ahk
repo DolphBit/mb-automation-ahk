@@ -1,16 +1,13 @@
 ﻿#NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; Verwendung GUI
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+; UI for Verwendung
 class GuiVerwendungen
 {
     __New() {
-
     }
 
+    ; Show the UI
     Show()
     {
         if (this.events) {
@@ -90,7 +87,6 @@ class GuiVerwendungen
     }
 
     __Delete() {
-        try Gui, % this.hwnd . ":Destroy"
         this.events.Clear()
     }
 
@@ -113,7 +109,7 @@ class GuiVerwendungen
             fn := ObjBindMethod(this, "OnButtonSave")
             GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_save, % fn
 
-            fn := ObjBindMethod(this, "OnButtonCancel")
+            fn := ObjBindMethod(this, "CloseGui")
             GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_cancel, % fn
 
             fn := ObjBindMethod(this, "OnButtonAdd")
@@ -171,13 +167,8 @@ class GuiVerwendungen
             this.CloseGui(true)
         }
 
-        ; Cancel any changes, restore original values and closes ui
-        ; Will warn user if any of the input fields have changed
-        OnButtonCancel() {
-            this.CloseGui()
-        }
-
         ; Called when the UI should be closed
+        ; If {save} is false, the user will be warned if he loses saved data (if changed)
         CloseGui(save = false) {
             if(!save) {
                 ; compare if input values differ
@@ -194,9 +185,7 @@ class GuiVerwendungen
             this.ui.unmodifiedData := ""
             this.ui.modifiedData := ""
             this.ui.originalData := ""
-            try Gui, % this.ui.hwnd ":Hide"
 
-            this.save := save
             this.CloseGui := ""
             this.Clear()
             return true
@@ -204,28 +193,28 @@ class GuiVerwendungen
 
         ; Windows Events
         WM_SYSCOMMAND(wParam, lParam, msg, hwnd) {
-            if (hwnd != this.ui.hwnd)
-                Return
-
-            if (wParam = C_SC_CLOSE) {
-                if(!this.CloseGui()) {
-                    return 1
-                }
+            if (hwnd != this.ui.hwnd) {
                 return
             }
-            return
+
+            if (wParam = C_SC_CLOSE) {
+                if (!this.CloseGui()) {
+                    return 1
+                }
+                this.Clear()
+                return
+            }
         }
 
         ; Called to clear the event hooks and does cleanup + destroy ui
         Clear() {
             Gui, Main:-Disabled
-            try Gui, % this.ui.hwnd . ":Destroy"
+            try Gui, %A_Gui%:Destroy
 
             ; Cleanup
             OnMessage(0x112, this.OnSysCommand, 0)
             this.OnSysCommand := ""
             this.Clear := ""
-            this.save := false
         }
     }
 }

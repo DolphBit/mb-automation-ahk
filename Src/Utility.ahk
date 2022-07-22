@@ -10,7 +10,6 @@
 cleanupAmount(amount)
 {
     return RegExReplace(amount, "m)[^0-9,-]", "")
-    ;return Trim(StrReplace(StrReplace(StrReplace(amount, "€", ""), ".", ""), "`r`n", ""))
 }
 
 ; Checks if application is focused
@@ -93,7 +92,8 @@ ArrIndexOf(haystack, needle, notFoundValue:=-1)
 }
 
 ; Checks if haystack is array in does include needle
-ArrIncludes(haystack, needle) {
+ArrIncludes(haystack, needle)
+{
     return ArrIndexOf(haystack, needle) > -1
 }
 
@@ -124,7 +124,8 @@ MoveArrayEntry(array, from, to)
 }
 
 ; Check if {arrOrObj} is an array
-IsArray(arrOrObj) { ; https://www.autohotkey.com/boards/viewtopic.php?f=76&t=64332 + added IsObject check
+IsArray(arrOrObj) ; https://www.autohotkey.com/boards/viewtopic.php?f=76&t=64332 + added IsObject check
+{
     return IsObject(arrOrObj) && !ObjCount(arrOrObj) || ObjMinIndex(arrOrObj) == 1 && ObjMaxIndex(arrOrObj) == ObjCount(arrOrObj) && arrOrObj.Clone().Delete(1, arrOrObj.MaxIndex()) == ObjCount(arrOrObj)
 }
 
@@ -137,6 +138,11 @@ ArrayEquals(a, b)
 
     For i, aVal in a {
         bVal := b[i]
+
+        ; we need a copy here, because AHK converts eventually aVal to number and I can't figure out why
+        aValCopy := aVal
+        bValCopy := bVal
+
         if (IsArray(aVal)) {
             if (!ArrayEquals(aVal, bVal)) {
                 return false
@@ -145,7 +151,7 @@ ArrayEquals(a, b)
             if (!ObjectEquals(aVal, bVal)) {
                 return false
             }
-        } else if (!NumberStringEquals(aVal, bVal)) {
+        } else if (!NumberStringEquals(aValCopy, bValCopy)) {
             return false
         }
     }
@@ -170,17 +176,26 @@ ObjectEquals(a, b)
         }
         bVal := b[k]
 
-        if (!aVal && (val != bVal)) { ; null | undefined | empty | false check
+        ; we need a copy here, because AHK converts eventually aVal to number and I can't figure out why
+        aValCopy := aVal
+        bValCopy := bVal
+
+        if (!aVal && (aVal != bVal)) { ; null | undefined | empty | false check
             return false
-        } else if (IsArray(aVal)) {
-            if (!ArrayEquals(aVal, bVal)) {
-                return false
-            }
         } else if (IsObject(aVal)) {
-            if (!ObjectEquals(aVal, bVal)) {
+
+            if (!IsObject(bVal)) {
                 return false
             }
-        } else if(!NumberStringEquals(aVal, bVal)) {
+
+            if (IsArray(aVal)) {
+                if (!ArrayEquals(aVal, bVal)) {
+                    return false
+                }
+            } else if (!ObjectEquals(aVal, bVal)) {
+                return false
+            }
+        } else if(!NumberStringEquals(aValCopy, bValCopy)) {
             return false
         }
     }
@@ -205,11 +220,18 @@ IsNumber(val)
 }
 
 ; Creats a deep clone of an object
-DeepClone(obj) {
+DeepClone(obj)
+{
     clone := {}
     For k, val in obj {
+
+        ; we need a copy here, because AHK converts eventually val to number and I can't figure out why
+        valCopy := val
+
         if (val && IsObject(val)) {
             clone[k] := DeepClone(val)
+        } else if (IsNumber(valCopy)) {
+            clone[k] := valCopy
         } else {
             clone[k] := val
         }

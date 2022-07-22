@@ -1,15 +1,15 @@
 ﻿#NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
+; UI for Splittbuchung
 class GuiEditSplitt
 {
     __New() {
     }
 
+    ; Show the UI for the given {index} Splittbuchung
     Show(index)
     {
-        global G_STYLES, G_QUICK_SPLIT
-
         if (this.events) {
             this.events.Clear()
         }
@@ -153,14 +153,16 @@ class GuiEditSplitt
         this.events.Clear()
     }
 
+    ; Store the modifiedData
     StoreModifiedData() {
         this.modifiedData := this.FetchAllData()
     }
 
+    ; Get all control values
     FetchAllData() {
         data := {}
 
-        index := this.gui.index
+        index := this.ui.index
         if (index != -1) {
             GuiControlGet, Val,, % this.controls.label
             data.label := Val
@@ -191,32 +193,31 @@ class GuiEditSplitt
     ; Sub Class to handle events properly
     class EventHook
     {
-        __New(gui) {
-            hwnd := gui.hwnd
-            this.gui := gui
+        __New(ui) {
+            this.ui := ui
 
             fn := ObjBindMethod(this, "OnButtonSave")
-            GuiControl, %hwnd%:+g, % this.gui.controls.btn_save, % fn
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_save, % fn
 
-            fn := ObjBindMethod(this, "OnButtonCancel")
-            GuiControl, %hwnd%:+g, % this.gui.controls.btn_cancel, % fn
+            fn := ObjBindMethod(this, "CloseGui")
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_cancel, % fn
 
             fn := ObjBindMethod(this, "OnButtonAddEntries")
-            GuiControl, %hwnd%:+g, % this.gui.controls.btn_add, % fn
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_add, % fn
 
-            For i in this.gui.controls.rows
+            For i in this.ui.controls.rows
             {
                 fn := ObjBindMethod(this, "OnButtonRemoveEntry", i)
-                GuiControl, %hwnd%:+g, % this.gui.controls.rows[i].btn_remove, % fn
+                GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.rows[i].btn_remove, % fn
 
-                if (this.gui.controls.rows[i].btn_move_up) {
-                        fn := ObjBindMethod(this, "OnButtonMoveEntry", i, i-1)
-                    GuiControl, %hwnd%:+g, % this.gui.controls.rows[i].btn_move_up, % fn
+                if (this.ui.controls.rows[i].btn_move_up) {
+                    fn := ObjBindMethod(this, "OnButtonMoveEntry", i, i-1)
+                    GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.rows[i].btn_move_up, % fn
                 }
 
-                if (this.gui.controls.rows[i].btn_move_down) {
-                        fn := ObjBindMethod(this, "OnButtonMoveEntry", i, i+1)
-                    GuiControl, %hwnd%:+g, % this.gui.controls.rows[i].btn_move_down, % fn
+                if (this.ui.controls.rows[i].btn_move_down) {
+                    fn := ObjBindMethod(this, "OnButtonMoveEntry", i, i+1)
+                    GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.rows[i].btn_move_down, % fn
                 }
             }
 
@@ -224,18 +225,19 @@ class GuiEditSplitt
             OnMessage(0x112, this.OnSysCommand)
         }
 
+        ; Called on button click and will save the Splittbuchung
         OnButtonSave() {
             Global G_QUICK_SPLIT
-            Gui, % this.gui.hwnd ":Submit", NoHide
+            Gui, % this.ui.hwnd ":Submit", NoHide
 
-            index := this.gui.index
+            index := this.ui.index
 
             if (index != -1) {
-                GuiControlGet, ValueLabel,, % this.gui.controls.label
+                GuiControlGet, ValueLabel,, % this.ui.controls.label
                 G_BUCHUNGEN.Splitt[index].label := ValueLabel
             }
 
-            data := this.gui.FetchAllData()
+            data := this.ui.FetchAllData()
 
             if (index != -1) {
                 G_BUCHUNGEN.Splitt[index].label := data.label
@@ -254,76 +256,79 @@ class GuiEditSplitt
             this.CloseGui()
         }
 
-        OnButtonCancel() {
-            Global G_QUICK_SPLIT
-
-            ; compare if input values differ
-            if (!ObjectEquals(this.gui.unmodifiedData, this.gui.FetchAllData())) {
-                    MsgBox, 4, % " ", Schließen ohne zu speichern?
-                IfMsgBox No, return 1
-
-                ; reapply the original data, because we eventually applied some modifications (add/remove)
-                if (this.gui.index == -1) {
-                        G_QUICK_SPLIT := this.gui.originalData
-                } else {
-                    G_BUCHUNGEN.Splitt[this.gui.index] := this.gui.originalData
-                    G_BUCHUNGEN.WriteJSON()
-                }
-            }
-            this.CloseGui()
-        }
-
-        CloseGui() {
-            this.gui.unmodifiedData := ""
-            this.gui.modifiedData := ""
-            this.gui.originalData := ""
-            try Gui, % this.gui.hwnd ":Hide"
-            this.Clear()
-        }
-
         OnButtonMoveEntry(from, to) {
-            index := this.gui.index
+            index := this.ui.index
 
-            this.gui.StoreModifiedData()
-            this.gui.modifiedData.buchungen := MoveArrayEntry(this.gui.modifiedData.buchungen, from, to)
+            this.ui.StoreModifiedData()
+            this.ui.modifiedData.buchungen := MoveArrayEntry(this.ui.modifiedData.buchungen, from, to)
 
             G_BUCHUNGEN.MoveEntry("splitt-entry", from, to, index)
         }
 
         OnButtonAddEntries() {
             Global CtrlIdSplitAmount
-            index := this.gui.index
+            index := this.ui.index
 
-            this.gui.StoreModifiedData()
+            this.ui.StoreModifiedData()
 
-            GuiControlGet, AddSplitAmount, , % this.gui.controls.input_range
+            GuiControlGet, AddSplitAmount, , % this.ui.controls.input_range
             G_BUCHUNGEN.AddSplittbuchungEntry(index, AddSplitAmount)
 
-            this.gui.Show(index)
+            this.ui.Show(index)
         }
 
         OnButtonRemoveEntry(index) {
-            splittIndex := this.gui.index
-            this.gui.StoreModifiedData()
-            this.gui.modifiedData.buchungen.RemoveAt(index)
+            splittIndex := this.ui.index
+            this.ui.StoreModifiedData()
+            this.ui.modifiedData.buchungen.RemoveAt(index)
             G_BUCHUNGEN.RemoveSplittEntry(index, splittIndex)
         }
 
+        ; Called when the UI should be closed
+        ; If {save} is false, the user will be warned if he loses saved data (if changed)
+        CloseGui() {
+            ; compare if input values differ
+            if (!ObjectEquals(this.ui.unmodifiedData, this.ui.FetchAllData())) {
+                MsgBox, 4, % " ", Schließen ohne zu speichern?
+                IfMsgBox No, return false
+
+                ; reapply the original data, because we eventually applied some modifications (add/remove)
+                if (this.ui.index == -1) {
+                    G_QUICK_SPLIT := this.ui.originalData
+                } else {
+                    G_BUCHUNGEN.Splitt[this.ui.index] := this.ui.originalData
+                    G_BUCHUNGEN.WriteJSON()
+                }
+            }
+
+            this.ui.unmodifiedData := ""
+            this.ui.modifiedData := ""
+            this.ui.originalData := ""
+
+            this.CloseGui := ""
+            this.Clear()
+            return true
+        }
+
+        ; Windows Events
         WM_SYSCOMMAND(wParam, lParam, msg, hwnd) {
-            if (hwnd != this.gui.hwnd) {
-                    return
+            if (hwnd != this.ui.hwnd) {
+                return
             }
 
             if (wParam = C_SC_CLOSE) {
+                if (!this.CloseGui()) {
+                    return 1
+                }
                 this.Clear()
                 return
             }
-            return
         }
 
+        ; Called to clear the event hooks and does cleanup + destroy ui
         Clear() {
             Gui, Main:-Disabled
-            Gui, %A_Gui%:Destroy
+            try Gui, %A_Gui%:Destroy
 
             ; Cleanup
             OnMessage(0x112, this.OnSysCommand, 0)
