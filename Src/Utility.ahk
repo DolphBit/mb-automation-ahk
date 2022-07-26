@@ -24,9 +24,9 @@ FocusWindowMB()
     WinActivate, %C_WINDOW_MAIN_TITLE%,,,
     if !(WinActive(C_WINDOW_MAIN_TITLE)) {
         ErrorMessage("MB konnte nicht gefunden werden!")
-        return False
+        return false
     }
-    return True
+    return true
 }
 
 ; Check if a "Zahlung" is focused
@@ -35,28 +35,114 @@ HasFocusZahlung()
     ControlGetFocus, OutputVar, %C_WINDOW_MAIN_TITLE%
     if ErrorLevel or (!ArrIncludes(C_CTRL_ZAHLUNG_ROW_CLASSNN, OutputVar)) {
         ErrorMessage("Keine Zahlung ausgewählt!")
-        return False
+        return false
     }
 
-    return True
+    return true
 }
 
+; Wait for Zahlung Details
+WaitForZahlungWindow()
+{
+    return WaitForWindowAndActivate(C_WIN_ZAHLUNG_CLASS, "Zahlungsfenster")
+}
+
+; Wait for Steuerkategorie Auswahl
+WaitForSteuerkategorieWindow()
+{
+    return WaitForWindowAndActivate(C_WIN_FIBU_KATEGORIE_AUSWAHL_CLASS, "Steuerkateogrie Fenster (Weitere)")
+}
+
+; Wait for a window, activates it then and check if its actually active
+WaitForWindowAndActivate(WinClass, FensterName := "Fenster", showError := true)
+{
+    try {
+        WinWait, ahk_class %WinClass%,, %G_WAIT_TIMEOUT_SEC%
+    } catch _e {
+        if (showError) {
+            ErrorMessage(FensterName . " '" . WinClass . "' wurde nicht gefunden!")
+        }
+        return false
+    }
+
+    try {
+        WinActivate, ahk_class %WinClass%
+        WinWaitActive, ahk_class %WinClass%,, 3
+    } catch _e {
+        if (showError) {
+            ErrorMessage(FensterName . " " . WinClass . "' ist nicht aktiv!")
+        }
+        return false
+    }
+
+    return true
+}
+
+; Moves the mouse to the control and executes a click
+; {controlText} text of control
+; {winClass} CLASSNN of window to look for
+; {showError} if true (default: false) an error will be shown if ctrl can't be found
 MoveMouseAndClickOnControl(controlText, winClass, showError := false)
+{
+    return MoveMouseOffsetAndClickOnControl(controlText, winClass, { x: 10, y: 10 }, showError)
+}
+
+; Moves the mouse to the control and executes a click
+; {controlText} text of control
+; {winClass} CLASSNN of window to look for
+; {object.x,object.y} offset (object) of x,y to click at
+; {showError} if true (default: false) an error will be shown if ctrl can't be found
+MoveMouseOffsetAndClickOnControl(controlText, winClass, offset := "", showError := false)
 {
     ControlGetPos, posX, posY,,, % controlText, ahk_class %winClass%
     if (ErrorLevel || !posX || !posY) {
         if (showError) {
             ErrorMessage(controlText . " konnte nicht gedrückt werden!")
         }
-        return False
+        return false
     }
-    posX += 10
-    posY += 10
+
+    if (offset.x) {
+        posX += offset.x
+    }
+    if (offset.y) {
+        posY += offset.y
+    }
 
     MouseMove, posX, posY, 0
     Click, posX posY
 
-    return True
+    return true
+}
+
+; Moves the mouse to the control and executes a click
+; {controlClass} CLASSNN of control
+; {winClass} CLASSNN of window to look for
+; {object.x,object.y} offset (object) of x,y to click at
+; {showError} if true (default: false) an error will be shown if ctrl can't be found
+MoveMouseOffsetAndClickOnControlClass(controlClass, winClass, offset := "", showError := false)
+{
+    ControlGetPos, posX, posY,,, %controlClass%, ahk_class %winClass%
+    if (ErrorLevel || !posX || !posY) {
+        if (showError) {
+            ErrorMessage(controlClass . " position nicht auffindbar!")
+        }
+        return false
+    }
+
+    if (offset.x) {
+        posX += offset.x
+    }
+    if (offset.y) {
+        posY += offset.y
+    }
+
+    G_LOGGER.info("Move to " . posX . "x" . posY . " and click...")
+
+    MouseMove, posX, posY, 0
+    Click, posX posY
+
+    return true
 }
 
 ; Shows a generic error message box
@@ -237,4 +323,13 @@ DeepClone(obj)
         }
     }
     return clone
+}
+
+; Ensures the falue is true or false
+Truthy(val) {
+    if (!val) {
+        return false
+    }
+
+    return true
 }

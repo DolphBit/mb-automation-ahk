@@ -13,10 +13,10 @@ Class Buchungen {
         this.ReadJSON()
     }
 
-    SetProcessing(processing = True, info = "Please wait...") {
+    SetProcessing(processing := True, info := "Please wait...") {
         this.IsProcessing := processing
         this.ProcessingTask := info
-        UpdateGUI()
+        G_GUI_MAIN.Show()
     }
 
     ReadJSON()
@@ -76,7 +76,7 @@ Class Buchungen {
         this.Splitt.Push({ label: "Neue Splittbuchung", buchungen: [] })
         this.WriteJSON()
 
-        UpdateGUI(2)
+        G_GUI_MAIN.Show(2)
     }
 
     AddSplittbuchungEntry(index, amount)
@@ -100,7 +100,7 @@ Class Buchungen {
         this.Buchungen.Push({ label: "Neue Buchung", konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE })
         this.WriteJSON()
 
-        UpdateGUI()
+        G_GUI_MAIN.Show()
     }
 
     GetVerwendungString()
@@ -143,8 +143,15 @@ Class Buchungen {
         this.WriteJSON()
     }
 
-    RemoveEntry(type, index, label)
+    RemoveEntry(type, index)
     {
+        label := ""
+        if (type == "buchung") {
+            label := this.Buchungen[index].label
+        } else if (type == "splitt") {
+            label := this.Splitt[index].label
+        }
+
         MsgBox, 4,, Eintrag '%label%' wirklich löschen?
         IfMsgBox Yes
         {
@@ -156,7 +163,7 @@ Class Buchungen {
             else return
 
             this.WriteJSON()
-            UpdateGUI()
+            G_GUI_MAIN.Show()
         }
         else
             return
@@ -214,7 +221,7 @@ Class Buchungen {
         if (type == "splitt-entry") {
             G_GUI_EDIT_SPLITT.Show(splittIndex)
         } else {
-            UpdateGUI()
+            G_GUI_MAIN.Show()
         }
     }
 

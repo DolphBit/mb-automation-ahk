@@ -37,6 +37,18 @@ global C_CTRL_KEINE_ZUORDNUNG_TEXT := "Keine Zuordnung"
 global C_CTRL_BELEGNUMMER_CLASSNN := "TcxCustomInnerTextEdit5"
 global C_CTRL_BELEGNUMMER_TEXT := "Beleg-Nr. (opt.)"
 
+global C_CTRL_VERWENDUNG_CLASSNN := "TcxCustomComboBoxInnerEdit1"
+global C_CTRL_VERWENDUNG_TEXT := "Beleg-Nr. (opt.)"
+
+global C_CTRL_KOSTEN_CLASSNN := "TcxCustomComboBoxInnerEdit2"
+global C_CTRL_KOSTEN_TEXT := "Kosten-/ Erlösart"
+
+global C_CTRL_STEUERSATZ_CLASSNN := "TcxCustomComboBoxInnerEdit3"
+global C_CTRL_STEUERSATZ_TEXT := "Steuersatz"
+
+global C_CTRL_ZAHLUNG_SPLITTBUCHUNGEN_LABEL_TEXT := "TcxLabel11" ; we must use this as reference. because `TcxGridSite1` is not working :/
+global C_CTRL_ZAHLUNG_SPLITTBUCHUNGEN_BTN_BEARBEITEN := "TDeltraCxButton11"
+
 ; Dokumente Fenster
 global C_WIN_DOKUMENTE_TITLE := "Dokumente"
 
@@ -62,5 +74,5 @@ global C_KONTO_PRIVATENNAHMEN_SKR4 := 2100
 ; === Defaults
 global G_NEW_SPLITENTRY := { label: "Splittbuchung", betrag: 0, konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
 
-; Codes
+; https://docs.microsoft.com/en-us/windows/win32/menurc/wm-syscommand
 global C_SC_CLOSE := 0xF060

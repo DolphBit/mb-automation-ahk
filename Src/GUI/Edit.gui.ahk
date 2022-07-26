@@ -124,17 +124,17 @@ class GuiEdit
             Gui, % this.ui.hwnd ":Submit", NoHide
 
             index := this.ui.index
-            G_BUCHUNGEN.Buchungen[index] = this.ui.FetchAllData()
+            G_BUCHUNGEN.Buchungen[index] := this.ui.FetchAllData()
 
             G_BUCHUNGEN.WriteJSON()
-            UpdateGUI()
+            G_GUI_MAIN.Show()
 
             this.Clear()
         }
 
         ; Called when the UI should be closed
         ; If {save} is false, the user will be warned if he loses saved data (if changed)
-        CloseGui(save = false) {
+        CloseGui(save := false) {
             if (!save) {
                 ; compare if input values differ
                 if (!ArrayEquals(this.ui.unmodifiedData, this.ui.FetchAllData())) {
@@ -156,7 +156,7 @@ class GuiEdit
                 return
             }
 
-            if (wParam = C_SC_CLOSE) {
+            if (wParam == C_SC_CLOSE) {
                 if (!this.CloseGui()) {
                     return 1
                 }

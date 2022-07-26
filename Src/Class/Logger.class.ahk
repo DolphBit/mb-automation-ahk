@@ -1,33 +1,50 @@
 #NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
-Global DebugLoggerEdit := 0
-
+; Application Logger
 Class Logger {
 
+    ; How many log files should be kept max
     static MAX_LOG_FILES := 3
+
+    ; Maps numeric type to label
     static MAP_TYPES := Object(0, "Error", 1, "Warn", 2, "Info", 3, "Debug")
+
+    static EditText := ""
 
     ; Init Logger
     ; logPath (string) absolute path to log directory
     ; logName (string) filename of log file w/o/ extension
-    ; logLevel (int) 0-4 [0: error, 1: warn, 2: info, 3: debug], default is 3, which includes error, warn, info
+    ; logLevel (int) 0-3 [0: error, 1: warn, 2: info, 3: debug], default is 2, which includes error, warn, info
     ; debugWindow (boolean) shows a very basic debug info with all messages
-    __New(logPath, logName, logLevel := 3, debugWindow := False)
-    {
+    __New(logPath, logName, logLevel := 2, debugWindow := False) {
         this.logPath := logPath
         this.logFilepath := logPath logName ".txt"
         this.logLevel := logLevel
         this.debugWindow := debugWindow
 
-        if (logLevel < 0 || logLevel > 4) {
-            logLevel := 3
-            WarnMessage("Invalid log level, must be between [0-4], using default (3)")
+        if (logLevel < 0 || logLevel > 3) {
+            logLevel := 2
+            WarnMessage("Invalid log level, must be between [0-4], using default (2)")
+        }
+
+        if (this.events) {
+            this.events.Clear()
         }
 
         if (debugWindow) {
-            Gui, Logger:Add, Edit, Readonly x10 y10 w400 h300 vDebugLoggerEdit
-            Gui, Logger:Show, w420 h320, Debug Logger
+            Gui, Logger:New, +hwndhGui
+            this.hwnd := hGui
+            this.controls := {}
+
+            Gui, Logger:Add, Edit, Readonly x10 y10 w400 h300 hwndInput
+            this.controls.input := Input
+
+            Gui, Logger:Add, Button, w80 hwndBtn, Clear
+            ImageButton.Create(Btn, G_STYLES.btn.info*)
+            this.controls.btn_clear := Btn
+
+            Gui, Logger:Show, w420 h350, Debug Logger
         }
 
         this.EnsureLogFolderExists()
@@ -35,33 +52,36 @@ Class Logger {
             FileMove, % this.logFilepath, % logPath logName "-" A_Now ".txt"
         }
         level := this.MAP_TYPES[logLevel]
+
         this.Info("Logger initialized (loglevel: " . level . ")")
 
         this.PruneOlderLogFiles()
+
+        this.events := new this.EventHook(this)
     }
 
-    Error(text)
-    {
-        this.Write(0, text)
+    ; Log an error message
+    Error(text) {
+        this.Log(0, text)
     }
 
-    Warn(text)
-    {
-        this.Write(1, text)
+    ; Log a warn message
+    Warn(text) {
+        this.Log(1, text)
     }
 
-    Info(text)
-    {
-        this.Write(2, text)
+    ; Log an info message
+    Info(text) {
+        this.Log(2, text)
     }
 
-    Debug(text)
-    {
-        this.Write(3, text)
+    ; Log a debug message
+    Debug(text) {
+        this.Log(3, text)
     }
 
-    Write(type, text)
-    {
+    ; Generic log message, which will write to terminal and file; {type} 0-3 (error: 0, warn: 1, info: 2, debug: 3); {text} message to log
+    Log(type, text) {
         typeLabel := this.MAP_TYPES[type]
         debugOutput := "[" . typeLabel . "]: " . text
         OutputDebug, % debugOutput
@@ -74,19 +94,18 @@ Class Logger {
         FileAppend, % A_Now "[" . typeShort . "]: " text "`n", % this.logFilepath
 
         if (this.debugWindow) {
-            GuiControlGet, DebugLoggerEdit, Logger:,
-            GuiControl, Logger:, DebugLoggerEdit, %debugOutput%`r`n%DebugLoggerEdit%
+            GuiControlGet, DebugLoggerEdit,, % this.controls.input
+            GuiControl,, % this.controls.input, %debugOutput%`r`n%DebugLoggerEdit%
         }
     }
 
     ; Open the settings folder of the script
-    OpenLogsFolder()
-    {
+    OpenLogsFolder() {
         Run, % this.logPath
     }
 
-    PruneOlderLogFiles()
-    {
+    ; Deletes older log files
+    PruneOlderLogFiles() {
         FileList := ""
         Loop, Files, % this.logPath "\*.txt", F
             FileList .= A_LoopFileTimeCreated "`t" A_LoopFileName "`n"
@@ -114,11 +133,53 @@ Class Logger {
     }
 
     ; Ensures the program folder for this script exists (eventually creats it or throws an error)
-    EnsureLogFolderExists()
-    {
-        if !FileExist(this.logPath)
+    EnsureLogFolderExists() {
+        if !FileExist(this.logPath) {
             FileCreateDir, % this.logPath
-        if ErrorLevel
-            ErrorMessage("Log Ordner konnte nicht erstellt werden (das ist nicht gut!)")
+            if ErrorLevel {
+                ErrorMessage("Log Ordner konnte nicht erstellt werden (das ist nicht gut!)")
+            }
+        }
+    }
+
+    ; Sub Class to handle events properly
+    class EventHook
+    {
+        __New(ui) {
+            this.ui := ui
+
+            fn := ObjBindMethod(this, "OnButtonClear")
+            GuiControl, % this.ui.hwnd ":+g", % this.ui.controls.btn_clear, % fn
+
+            this.OnSysCommand := ObjBindMethod(this, "WM_SYSCOMMAND")
+            OnMessage(0x112, this.OnSysCommand)
+        }
+
+        ; Called on button click and clears log
+        OnButtonClear() {
+            GuiControl,, % this.ui.controls.input, % ""
+        }
+
+        ; Windows Events
+        WM_SYSCOMMAND(wParam, lParam, msg, hwnd) {
+            if (hwnd != this.ui.scrollWindow.HWND) {
+                return
+            }
+
+            if (wParam == C_SC_CLOSE) {
+                this.Clear()
+                return
+            }
+        }
+
+        ; Called to clear the event hooks and does cleanup + destroy ui
+        Clear() {
+            try Gui, %A_Gui%:Destroy
+
+            ; Cleanup
+            OnMessage(0x112, this.OnSysCommand, 0)
+            this.OnSysCommand := ""
+            this.Clear := ""
+        }
     }
 }

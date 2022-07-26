@@ -26,6 +26,7 @@ class GuiSettings
 
         Gui, Settings:Add, Text,, Version: %G_VERSION% (%G_DATE%)
         Gui, Settings:Add, Text,, Programm Ordner: %G_PROGRAMM_FOLDER%
+        Gui, Settings:Add, Text,, Compiled With AutoHotky v%A_AhkVersion%
 
         Gui, Settings:Add, Button, hwndBtn, Programm Ordner öffnen
         this.controls.btnOpenSettingsFolder := Btn
@@ -37,6 +38,10 @@ class GuiSettings
         bValue := G_SETTINGS.bNoAdsMode
         Gui, Settings:Add, CheckBox, Checked%bValue% hwndCbox, "Keine Werbung"-Modus
         this.controls.cboxNoAds := Cbox
+
+        bValue := G_SETTINGS.bSKR04
+        Gui, Settings:Add, CheckBox, Checked%bValue% hwndCbox, "Konto SKR04"
+        this.controls.cboxSKR04 := Cbox
 
         Gui, Settings:Add, Button, hwndBtn, GitHub Repository
         this.controls.btnOpenGitHub := Btn
@@ -81,13 +86,16 @@ class GuiSettings
                 return
             }
 
-            if (wParam = C_SC_CLOSE) {
+            if (wParam == C_SC_CLOSE) {
                 ; Store & write settings
-                GuiControlGet, bValue,, % this.controls.cboxIgnoreWarning
+                GuiControlGet, bValue,, % this.ui.controls.cboxIgnoreWarning
                 G_SETTINGS.SetIgnoreWarning(bValue)
 
-                GuiControlGet, bValue,, % this.controls.cboxNoAds
+                GuiControlGet, bValue,, % this.ui.controls.cboxNoAds
                 G_SETTINGS.SetNoAdsMode(bValue)
+
+                GuiControlGet, bValue,, % this.ui.controls.cboxSKR04
+                G_SETTINGS.SetSKR04(bValue)
 
                 G_SETTINGS.WriteSettings()
 

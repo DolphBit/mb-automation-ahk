@@ -162,14 +162,14 @@ class GuiVerwendungen
             G_BUCHUNGEN.SetVerwendungen(this.ui.GetInputValues())
             G_BUCHUNGEN.WriteJSON()
 
-            UpdateGUI(3)
+            G_GUI_MAIN.Show(3)
 
             this.CloseGui(true)
         }
 
         ; Called when the UI should be closed
         ; If {save} is false, the user will be warned if he loses saved data (if changed)
-        CloseGui(save = false) {
+        CloseGui(save := false) {
             if(!save) {
                 ; compare if input values differ
                 if (!ArrayEquals(this.ui.unmodifiedData, this.ui.GetInputValues())) {
@@ -197,7 +197,7 @@ class GuiVerwendungen
                 return
             }
 
-            if (wParam = C_SC_CLOSE) {
+            if (wParam == C_SC_CLOSE) {
                 if (!this.CloseGui()) {
                     return 1
                 }

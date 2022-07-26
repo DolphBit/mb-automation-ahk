@@ -7,9 +7,9 @@ and this project adheres to [CalVer Versioning](https://calver.org) [format: YYY
 ## [Unreleased]
 - N/A
 
-## v[2022.07.19_1] - 2022-07-19
+## v[2022.07.20_1] - 2022-07-20
 ### Added
 - First public release 🎉
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v2022.07.19_1...HEAD
-[2022.07.19_1]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v2022.07.19_1
+[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v2022.07.20_1...HEAD
+[2022.07.20_1]: https://github.com/olivierlacan/keep-a-changelog/releases/tag/v2022.07.20_1

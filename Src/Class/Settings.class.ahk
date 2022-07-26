@@ -3,12 +3,12 @@
 
 Class Settings {
     ; Init Settings
-    __New()
-    {
+    __New() {
         this.EnsureProgramFolderExists()
 
-        this.bIgnoreWarning := False
-        this.bNoAdsMode := False
+        this.bIgnoreWarning := false
+        this.bNoAdsMode := false
+        this.bSKR04 := false
 
         if (FileExist(G_SETTINGS_FILE)) {
             ; future: upgrade settings file, etc
@@ -20,18 +20,19 @@ Class Settings {
     }
 
     ; Read settings ini
-    ReadSettings()
-    {
-        IniRead, bValue, %G_SETTINGS_FILE%, options, IgnoreWarning, % False
+    ReadSettings() {
+        IniRead, bValue, %G_SETTINGS_FILE%, options, IgnoreWarning, % false
         this.SetIgnoreWarning(bValue)
 
-        IniRead, bValue, %G_SETTINGS_FILE%, options, NoAds, % False
+        IniRead, bValue, %G_SETTINGS_FILE%, options, NoAds, % false
         this.SetNoAdsMode(bValue)
+
+        IniRead, bValue, %G_SETTINGS_FILE%, options, SKR04, % false
+        this.SetSKR04(bValue)
     }
 
     ; Write settings ini
-    WriteSettings()
-    {
+    WriteSettings() {
         Gui, Settings:Submit, NoHide
         this.EnsureProgramFolderExists()
 
@@ -41,31 +42,28 @@ Class Settings {
     }
 
     ; Open the settings folder of the script
-    OpenSettingsFolder()
-    {
+    OpenSettingsFolder() {
         this.EnsureProgramFolderExists()
-        Run, "%G_PROGRAMM_FOLDER%"
+        Run, % G_PROGRAMM_FOLDER
     }
 
     ; Ensures the program folder for this script exists (eventually creats it or throws an error)
-    EnsureProgramFolderExists()
-    {
-        if !FileExist(G_PROGRAMM_FOLDER)
+    EnsureProgramFolderExists() {
+        if !FileExist(G_PROGRAMM_FOLDER) {
             FileCreateDir, %G_PROGRAMM_FOLDER%
-        if ErrorLevel
-            MsgBox, Settings Ordner konnte nicht erstellt werden (das ist nicht gut!)
+            if ErrorLevel
+                MsgBox, Settings Ordner konnte nicht erstellt werden (das ist nicht gut!)
+        }
     }
 
     ; Toggle ignore warning, which will close automatically any warning after OK (from Zahlung)
-    SetIgnoreWarning(on)
-    {
-        this.bIgnoreWarning := on
+    SetIgnoreWarning(on) {
+        this.bIgnoreWarning := Truthy(on)
     }
 
     ; Toggle ad check mode, which will automatically close the ad window
-    SetNoAdsMode(on)
-    {
-        this.bNoAdsMode := on
+    SetNoAdsMode(on) {
+        this.bNoAdsMode := Truthy(on)
         if (on) {
             this.StartNoAdsMode()
         } else {
@@ -73,24 +71,26 @@ Class Settings {
         }
     }
 
+    ; Toggle between SKR03 (default) and SKR04
+    SetSKR04(on) {
+        this.bSKR04 := Truthy(on)
+    }
+
     ; Start Ad window check
-    StartNoAdsMode()
-    {
+    StartNoAdsMode() {
         this.StopNoAdsMode()
         fn := this["NoAdsModePoll"].bind(this)
         SetTimer, % fn, 1000
     }
 
     ; Stop Ad window check
-    StopNoAdsMode()
-    {
+    StopNoAdsMode() {
         fn := this["NoAdsModePoll"].bind(this)
         SetTimer, % fn, Off
     }
 
     ; Checks for annoying ad window and automatically closes it
-    NoAdsModePoll()
-    {
+    NoAdsModePoll() {
         if(!HasExeFocus()) {
             return
         }

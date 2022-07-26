@@ -10,10 +10,6 @@ global G_PROGRAMM_FOLDER := A_AppData "\MB Automation AHK\"
 ; Predefined
 global G_LOGGER := 0
 global G_DEBUG_MODE := False
-global MainGUI = 0
-global bToggleEdit = False
-global WertVerwendung := ""
-global WertBelegnummer := ""
 
 ; States
 global G_IS_PROCESSING := False
@@ -29,8 +25,10 @@ global G_SETTINGS_FILE := G_PROGRAMM_FOLDER "settings.ini"
 global G_ENTRIES_FILE := G_PROGRAMM_FOLDER "entries.json"
 
 ; === Defaults
-global G_NEW_SPLITENTRY := { label: "Splittbuchung", betrag: 0, konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
+global G_NEW_SPLITENTRY := { label: "Splittbuchung", betrag: 0, konto: 0, steuer: 0, beleg: "", verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
 
 ; Quick
 global G_QUICK_SPLIT := { label: "Quick Splittbuchung", buchungen: []}
 G_QUICK_SPLIT.buchungen.Push(G_NEW_SPLITENTRY)
+
+global G_QUICK_BUCHUNG := { label: "Quick Buchung", betrag: 0, konto: 0, steuer: 0, beleg: "", verwendung: C_VERWENDUNGEN_KEINE_ANGABE }

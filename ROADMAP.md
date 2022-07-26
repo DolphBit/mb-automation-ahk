@@ -5,14 +5,13 @@ Planned changes, improvements, features, fixes, etc.
 ## Upcoming
 
 - [ ] Abort actions automatically if MB gets unfocused
-- [ ] Convert all GUI into class style GUI
-- [ ] Reduce global variables
+- [ ] Reduce global variables (global & constant, move them into G and C objects)
+- [ ] Support _Verwendung_ & _Belegnummer_ for QUICK entries
+- [ ] Support temporary _Belegnummer_ for saved _Buchung_ & _Splittbuchung_
 
 ## TBA
 
-- Support SKR4
-- Fix code formatting
-  - formatting is a bit messed up due to the bugs of the vscode extension 😥
+- [ ] Kosten-/ Erlösart setzen
 
 ## Eventually
 

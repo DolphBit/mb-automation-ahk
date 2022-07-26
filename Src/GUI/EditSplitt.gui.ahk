@@ -247,34 +247,30 @@ class GuiEditSplitt
             }
 
             if (index == -1) {
-                UpdateGUI(4)
+                G_GUI_MAIN.Show(4)
             } else {
                 G_BUCHUNGEN.WriteJSON()
-                UpdateGUI(2)
+                G_GUI_MAIN.Show(2)
             }
 
-            this.CloseGui()
+            this.CloseGui(true)
         }
 
         OnButtonMoveEntry(from, to) {
-            index := this.ui.index
-
             this.ui.StoreModifiedData()
             this.ui.modifiedData.buchungen := MoveArrayEntry(this.ui.modifiedData.buchungen, from, to)
 
-            G_BUCHUNGEN.MoveEntry("splitt-entry", from, to, index)
+            G_BUCHUNGEN.MoveEntry("splitt-entry", from, to, this.ui.index)
         }
 
+        ; Called on button click and adds x new entries, where x is received from the numeric input
         OnButtonAddEntries() {
-            Global CtrlIdSplitAmount
-            index := this.ui.index
-
             this.ui.StoreModifiedData()
 
             GuiControlGet, AddSplitAmount, , % this.ui.controls.input_range
-            G_BUCHUNGEN.AddSplittbuchungEntry(index, AddSplitAmount)
+            G_BUCHUNGEN.AddSplittbuchungEntry(this.ui.index, AddSplitAmount)
 
-            this.ui.Show(index)
+            this.ui.Show(this.ui.index)
         }
 
         OnButtonRemoveEntry(index) {
@@ -286,18 +282,20 @@ class GuiEditSplitt
 
         ; Called when the UI should be closed
         ; If {save} is false, the user will be warned if he loses saved data (if changed)
-        CloseGui() {
-            ; compare if input values differ
-            if (!ObjectEquals(this.ui.unmodifiedData, this.ui.FetchAllData())) {
-                MsgBox, 4, % " ", Schließen ohne zu speichern?
-                IfMsgBox No, return false
+        CloseGui(save := false) {
+            if (!save) {
+                ; compare if input values differ
+                if (!ObjectEquals(this.ui.unmodifiedData, this.ui.FetchAllData())) {
+                    MsgBox, 4, % " ", Schließen ohne zu speichern?
+                    IfMsgBox No, return false
 
-                ; reapply the original data, because we eventually applied some modifications (add/remove)
-                if (this.ui.index == -1) {
-                    G_QUICK_SPLIT := this.ui.originalData
-                } else {
-                    G_BUCHUNGEN.Splitt[this.ui.index] := this.ui.originalData
-                    G_BUCHUNGEN.WriteJSON()
+                    ; reapply the original data, because we eventually applied some modifications (add/remove)
+                    if (this.ui.index == -1) {
+                        G_QUICK_SPLIT := this.ui.originalData
+                    } else {
+                        G_BUCHUNGEN.Splitt[this.ui.index] := this.ui.originalData
+                        G_BUCHUNGEN.WriteJSON()
+                    }
                 }
             }
 
@@ -316,7 +314,7 @@ class GuiEditSplitt
                 return
             }
 
-            if (wParam = C_SC_CLOSE) {
+            if (wParam == C_SC_CLOSE) {
                 if (!this.CloseGui()) {
                     return 1
                 }
