@@ -32,13 +32,41 @@ FocusWindowMB()
 ; Check if a "Zahlung" is focused
 HasFocusZahlung()
 {
-    ControlGetFocus, OutputVar, %C_WINDOW_MAIN_TITLE%
-    if ErrorLevel or (!ArrIncludes(C_CTRL_ZAHLUNG_ROW_CLASSNN, OutputVar)) {
+    ControlGetPos, posX, posY,,, % C_ZAHLUNG_TITLE, ahk_class %C_WIN_MAIN_CLASS%
+    if ErrorLevel {
+        ErrorMessage("Keine Zahlung ausgewählt!")
+        return false
+    }
+
+    G_LOGGER.Info(Format("getpos x{1} y{2}", posX, posY))
+    posY += 160
+
+    MouseMove, posX, posY, 0
+
+    Sleep, 100
+
+    MouseGetPos,,,, MostLikelyControlZahlungen
+
+    ControlGetFocus, CurrentControlFocus
+
+    G_LOGGER.Info(Format("x{1} y{2}", posX, posY))
+    G_LOGGER.Info(MostLikelyControlZahlungen . "==" . CurrentControlFocus)
+    if (ErrorLevel || MostLikelyControlZahlungen != CurrentControlFocus) {
         ErrorMessage("Keine Zahlung ausgewählt!")
         return false
     }
 
     return true
+}
+
+IsZuordnungsAssistent()
+{
+    if(WinExist("ahk_class" CONST.zuordnung_assist.win_class_zuordnung_assist)) {
+        ErrorMessage("Zuordnungs Assistent wird (noch) nicht unterstützt. Bitte erst schließen und Zahlung auswählen.")
+        return true
+    }
+
+    return false
 }
 
 ; Wait for Zahlung Details
@@ -57,7 +85,7 @@ WaitForSteuerkategorieWindow()
 WaitForWindowAndActivate(WinClass, FensterName := "Fenster", showError := true)
 {
     try {
-        WinWait, ahk_class %WinClass%,, %G_WAIT_TIMEOUT_SEC%
+        WinWait, ahk_class %WinClass%,, % G_APP.timeout.sec
     } catch _e {
         if (showError) {
             ErrorMessage(FensterName . " '" . WinClass . "' wurde nicht gefunden!")
@@ -65,13 +93,20 @@ WaitForWindowAndActivate(WinClass, FensterName := "Fenster", showError := true)
         return false
     }
 
+    Sleep, 200
+
     try {
         WinActivate, ahk_class %WinClass%
+        Sleep, 200
         WinWaitActive, ahk_class %WinClass%,, 3
     } catch _e {
         if (showError) {
             ErrorMessage(FensterName . " " . WinClass . "' ist nicht aktiv!")
         }
+        return false
+    }
+
+    if (!G_AUTOMATION.CheckExeFocus()) {
         return false
     }
 
@@ -109,8 +144,16 @@ MoveMouseOffsetAndClickOnControl(controlText, winClass, offset := "", showError 
         posY += offset.y
     }
 
+    if (!G_AUTOMATION.CheckExeFocus()) {
+        return false
+    }
+
     MouseMove, posX, posY, 0
     Click, posX posY
+
+    if (!G_AUTOMATION.CheckExeFocus()) {
+        return false
+    }
 
     return true
 }
@@ -139,8 +182,16 @@ MoveMouseOffsetAndClickOnControlClass(controlClass, winClass, offset := "", show
 
     G_LOGGER.info("Move to " . posX . "x" . posY . " and click...")
 
+    if (!G_AUTOMATION.CheckExeFocus()) {
+        return false
+    }
+
     MouseMove, posX, posY, 0
     Click, posX posY
+
+    if (!G_AUTOMATION.CheckExeFocus()) {
+        return false
+    }
 
     return true
 }

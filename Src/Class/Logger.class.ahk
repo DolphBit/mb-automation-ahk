@@ -9,6 +9,7 @@ Class Logger {
 
     ; Maps numeric type to label
     static MAP_TYPES := Object(0, "Error", 1, "Warn", 2, "Info", 3, "Debug")
+    static MAP_TYPES_SHORT := Object(0, "E", 1, "W", 2, "I", 3, "D")
 
     static EditText := ""
 
@@ -45,6 +46,7 @@ Class Logger {
             this.controls.btn_clear := Btn
 
             Gui, Logger:Show, w420 h350, Debug Logger
+            Gui, Logger:Add, Text, x+8 yp+4, % "(Debug Window will slow down automation on weak machines)"
         }
 
         this.EnsureLogFolderExists()
@@ -82,16 +84,16 @@ Class Logger {
 
     ; Generic log message, which will write to terminal and file; {type} 0-3 (error: 0, warn: 1, info: 2, debug: 3); {text} message to log
     Log(type, text) {
-        typeLabel := this.MAP_TYPES[type]
-        debugOutput := "[" . typeLabel . "]: " . text
-        OutputDebug, % debugOutput
-
         if (this.logLevel < type) {
             return
         }
 
-        typeShort := SubStr(typeLabel, 0, 1)
-        FileAppend, % A_Now "[" . typeShort . "]: " text "`n", % this.logFilepath
+        debugOutput := "[" . this.MAP_TYPES[type] . "]: " . text
+        ;@Ahk2Exe-IgnoreBegin
+        OutputDebug, % debugOutput
+        ;@Ahk2Exe-IgnoreEnd
+
+        FileAppend, % A_Now "[" . this.MAP_TYPES_SHORT[type] . "]: " text "`n", % this.logFilepath
 
         if (this.debugWindow) {
             GuiControlGet, DebugLoggerEdit,, % this.controls.input

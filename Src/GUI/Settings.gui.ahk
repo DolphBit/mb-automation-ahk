@@ -8,6 +8,10 @@ class GuiSettings
         this.Show()
     }
 
+    __Delete() {
+        this.events.Clear()
+    }
+
     ; Show UI
     Show() {
         if (this.events) {
@@ -24,12 +28,15 @@ class GuiSettings
         Gui, Settings:Font, s8 normal, Segoe UI
         Gui, Settings:Color, % G_STYLES.main.color
 
-        Gui, Settings:Add, Text,, Version: %G_VERSION% (%G_DATE%)
-        Gui, Settings:Add, Text,, Programm Ordner: %G_PROGRAMM_FOLDER%
-        Gui, Settings:Add, Text,, Compiled With AutoHotky v%A_AhkVersion%
-
+        Gui, Settings:Add, Text,, % Format("Version: {:s} ({:s})", G_APP.version, G_APP.date)
+        Gui, Settings:Add, Text,, % Format("Programm Ordner: {:s}", G_APP.program_folder)
         Gui, Settings:Add, Button, hwndBtn, Programm Ordner öffnen
         this.controls.btnOpenSettingsFolder := Btn
+        Gui, Settings:Add, Text,, Compiled With AutoHotky v%A_AhkVersion%
+
+        Gui, Settings:Font, bold
+        Gui, Settings:Add, Text,, Options
+        Gui, Settings:Font,
 
         bValue := G_SETTINGS.bIgnoreWarning
         Gui, Settings:Add, CheckBox, Checked%bValue% hwndCbox, Warnung Buchungsperiode ignorieren
@@ -40,19 +47,21 @@ class GuiSettings
         this.controls.cboxNoAds := Cbox
 
         bValue := G_SETTINGS.bSKR04
-        Gui, Settings:Add, CheckBox, Checked%bValue% hwndCbox, "Konto SKR04"
+        Gui, Settings:Add, CheckBox, Checked%bValue% hwndCbox, Konto SKR04
         this.controls.cboxSKR04 := Cbox
 
-        Gui, Settings:Add, Button, hwndBtn, GitHub Repository
+        Gui, Settings:Add, Text, , Verzögerung der Automatisierung:
+        Gui, Settings:Add, Edit, x+3 yp-4 w40 hwndCtrlId,
+        this.controls.inputAutomationDelay := CtrlId
+        Gui, Settings:Add, UpDown, Range0-60 , % G_SETTINGS.automationDelay
+        Gui, Settings:Add, Text, x+3 yp+4, Sekunden
+
+        Gui, Settings:Add, Button, hwndBtn x10, GitHub Repository
         this.controls.btnOpenGitHub := Btn
 
         Gui, Settings:Show,,Einstellungen
 
         this.events := new this.EventHook(this)
-    }
-
-    __Delete() {
-        this.events.Clear()
     }
 
     ; Sub Class to handle events properly
@@ -96,6 +105,9 @@ class GuiSettings
 
                 GuiControlGet, bValue,, % this.ui.controls.cboxSKR04
                 G_SETTINGS.SetSKR04(bValue)
+
+                GuiControlGet, iValue,, % this.ui.controls.inputAutomationDelay
+                G_SETTINGS.automationDelay := iValue
 
                 G_SETTINGS.WriteSettings()
 

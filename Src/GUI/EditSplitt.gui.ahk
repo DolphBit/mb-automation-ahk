@@ -4,7 +4,9 @@
 ; UI for Splittbuchung
 class GuiEditSplitt
 {
-    __New() {
+    __Delete() {
+        try Gui, % this.hwnd . ":Destroy"
+        this.events.Clear()
     }
 
     ; Show the UI for the given {index} Splittbuchung
@@ -27,7 +29,7 @@ class GuiEditSplitt
         this.index := index
 
         if (index == -1)
-            this.splitt := G_QUICK_SPLIT
+            this.splitt := G_BUCHUNGEN.Quick.Splitt
         else
             this.splitt := G_BUCHUNGEN.Splitt[index]
 
@@ -148,11 +150,6 @@ class GuiEditSplitt
         this.events := new this.EventHook(this)
     }
 
-    __Delete() {
-        try Gui, % this.hwnd . ":Destroy"
-        this.events.Clear()
-    }
-
     ; Store the modifiedData
     StoreModifiedData() {
         this.modifiedData := this.FetchAllData()
@@ -227,7 +224,6 @@ class GuiEditSplitt
 
         ; Called on button click and will save the Splittbuchung
         OnButtonSave() {
-            Global G_QUICK_SPLIT
             Gui, % this.ui.hwnd ":Submit", NoHide
 
             index := this.ui.index
@@ -243,7 +239,7 @@ class GuiEditSplitt
                 G_BUCHUNGEN.Splitt[index].label := data.label
                 G_BUCHUNGEN.Splitt[index].buchungen := data.buchungen
             } else {
-                G_QUICK_SPLIT.buchungen := data.buchungen
+                G_BUCHUNGEN.Quick.Splitt.buchungen := data.buchungen
             }
 
             if (index == -1) {
@@ -291,7 +287,7 @@ class GuiEditSplitt
 
                     ; reapply the original data, because we eventually applied some modifications (add/remove)
                     if (this.ui.index == -1) {
-                        G_QUICK_SPLIT := this.ui.originalData
+                        G_BUCHUNGEN.Quick.Splitt := this.ui.originalData
                     } else {
                         G_BUCHUNGEN.Splitt[this.ui.index] := this.ui.originalData
                         G_BUCHUNGEN.WriteJSON()

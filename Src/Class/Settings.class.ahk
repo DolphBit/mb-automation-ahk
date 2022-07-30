@@ -2,33 +2,38 @@
 #Warn ; Enable warnings to assist with detecting common errors.
 
 Class Settings {
+    settingsFilePath := G_APP.program_folder . "settings.ini"
+    bIgnoreWarning := false
+    bNoAdsMode := false
+    bSKR04 := false
+    automationDelay := 1
+
     ; Init Settings
     __New() {
         this.EnsureProgramFolderExists()
 
-        this.bIgnoreWarning := false
-        this.bNoAdsMode := false
-        this.bSKR04 := false
-
-        if (FileExist(G_SETTINGS_FILE)) {
+        if (FileExist(this.settingsFilePath)) {
             ; future: upgrade settings file, etc
             this.ReadSettings()
         }
 
         ; write version info into file
-        IniWrite, %G_VERSION%, %G_SETTINGS_FILE%, app, version
+        IniWrite, % G_APP.version, % this.settingsFilePath, app, version
     }
 
     ; Read settings ini
     ReadSettings() {
-        IniRead, bValue, %G_SETTINGS_FILE%, options, IgnoreWarning, % false
+        IniRead, bValue, % this.settingsFilePath, options, IgnoreWarning, % false
         this.SetIgnoreWarning(bValue)
 
-        IniRead, bValue, %G_SETTINGS_FILE%, options, NoAds, % false
+        IniRead, bValue, % this.settingsFilePath, options, NoAds, % false
         this.SetNoAdsMode(bValue)
 
-        IniRead, bValue, %G_SETTINGS_FILE%, options, SKR04, % false
+        IniRead, bValue, % this.settingsFilePath, options, SKR04, % false
         this.SetSKR04(bValue)
+
+        IniRead, iValue, % this.settingsFilePath, options, AutomationDelay, 1
+        this.automationDelay := iValue
     }
 
     ; Write settings ini
@@ -37,20 +42,22 @@ Class Settings {
         this.EnsureProgramFolderExists()
 
         ; write settings entries...
-        IniWrite, % this.bIgnoreWarning, %G_SETTINGS_FILE%, options, IgnoreWarning
-        IniWrite, % this.bNoAdsMode, %G_SETTINGS_FILE%, options, NoAds
+        IniWrite, % this.bIgnoreWarning, % this.settingsFilePath, options, IgnoreWarning
+        IniWrite, % this.bNoAdsMode, % this.settingsFilePath, options, NoAds
+        IniWrite, % this.bSKR04, % this.settingsFilePath, options, SKR04
+        IniWrite, % this.automationDelay, % this.settingsFilePath, options, AutomationDelay
     }
 
     ; Open the settings folder of the script
     OpenSettingsFolder() {
         this.EnsureProgramFolderExists()
-        Run, % G_PROGRAMM_FOLDER
+        Run, % G_APP.program_folder
     }
 
     ; Ensures the program folder for this script exists (eventually creats it or throws an error)
     EnsureProgramFolderExists() {
-        if !FileExist(G_PROGRAMM_FOLDER) {
-            FileCreateDir, %G_PROGRAMM_FOLDER%
+        if !FileExist(G_APP.program_folder) {
+            FileCreateDir, % G_APP.program_folder
             if ErrorLevel
                 MsgBox, Settings Ordner konnte nicht erstellt werden (das ist nicht gut!)
         }

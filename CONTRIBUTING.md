@@ -23,6 +23,11 @@ The documentation for AHKv1 can be found here: https://www.autohotkey.com/docs/A
 
 The exe is built with compile-ahk (see [CREDITS](/CREDITS.md))
 
+- Install it with all dependencies
+- Right click in the explorer on `mb-automation.ahk` and select in the context menu `Compile with Options (NoGUI)`
+  - requires installation to have this option selected, otherwise use normal `Compile with Options`
+- exe should be built 🥳
+
 ### Formatting
 
 VSCode is used and the ahk extension does the formatting

@@ -1,14 +1,18 @@
 ﻿#NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
+global CONST := {}
+
 ; MB window Identifiers
 global C_WINDOW_MAIN_TITLE := "Mein Büro"
 global C_EXE_MAIN := "MB.exe"
+global C_WIN_MAIN_CLASS := "TFormMain"
+
+;
+global C_ZAHLUNG_TITLE := "Zahlungen"
 
 ; Window Zahlung Fenster
-global C_WIN_ZAHLUNG_TITLE := "Zahlung"
 global C_WIN_ZAHLUNG_CLASS := "TFO_Zahlung"
-global C_CTRL_ZAHLUNG_ROW_CLASSNN := ["TcxGridSite2", "TcxGridSite3"] ; Changes randomly, great...
 
 ; Window
 global C_WIN_BUCHUNG_ZORDNUNG_CLASS := "TFO_BuchungsZuordnungSubKonto"
@@ -20,9 +24,7 @@ global C_CTRL_AD_CLOSE_CLASSNN := "TcxLabel1"
 global C_CTRL_AD_CLOSE_TEXT := "Fenster schliessen"
 
 ; --
-;global C_CTRL_BTN_STEUERKONTO_CLASSNN := "TcxImage5" ; <-- always changes ... :(
 global C_CTRL_BTN_STEUERKONTO_TEXT := "Steuerkategorie"
-;global C_CTRL_BTN_SPLITTBUCHUNG_CLASSNN := "TcxImage3" ; <-- always changes ... :(
 global C_CTRL_BTN_SPLITTBUCHUNG_TEXT := "Splittbuchung"
 
 global C_CTRL_BTN_SPLITTBUCHUNG_NEU_CLASSNN := "TDeltraCxButton12"
@@ -49,6 +51,12 @@ global C_CTRL_STEUERSATZ_TEXT := "Steuersatz"
 global C_CTRL_ZAHLUNG_SPLITTBUCHUNGEN_LABEL_TEXT := "TcxLabel11" ; we must use this as reference. because `TcxGridSite1` is not working :/
 global C_CTRL_ZAHLUNG_SPLITTBUCHUNGEN_BTN_BEARBEITEN := "TDeltraCxButton11"
 
+; --
+CONST.zuordnung_assist := {}
+CONST.zuordnung_assist.win_class_zuordnung_assist := "TFO_ZuordnungsAssistent"
+CONST.zuordnung_assist.btn_text_keine_zuordnung := "Keine Zuordnung"
+CONST.zuordnung_assist.btn_text_okweiter := "OK && Weiter"
+
 ; Dokumente Fenster
 global C_WIN_DOKUMENTE_TITLE := "Dokumente"
 
@@ -70,9 +78,6 @@ global C_STEUERN_ARR := StrSplit(C_STEUERN, "|")
 ; KONTO
 global C_KONTO_PRIVATENNAHMEN_SKR3 := 1800
 global C_KONTO_PRIVATENNAHMEN_SKR4 := 2100
-
-; === Defaults
-global G_NEW_SPLITENTRY := { label: "Splittbuchung", betrag: 0, konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
 
 ; https://docs.microsoft.com/en-us/windows/win32/menurc/wm-syscommand
 global C_SC_CLOSE := 0xF060

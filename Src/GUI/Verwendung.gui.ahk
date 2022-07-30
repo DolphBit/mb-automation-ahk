@@ -4,12 +4,12 @@
 ; UI for Verwendung
 class GuiVerwendungen
 {
-    __New() {
+    __Delete() {
+        this.events.Clear()
     }
 
     ; Show the UI
-    Show()
-    {
+    Show() {
         if (this.events) {
             this.events.Clear()
         }
@@ -84,10 +84,6 @@ class GuiVerwendungen
         Gui, Verwendung:Show,, Verwendungen
 
         this.events := new this.EventHook(this)
-    }
-
-    __Delete() {
-        this.events.Clear()
     }
 
     ; Get all values (= Verwendung) from input fields

@@ -10,15 +10,15 @@ SetWorkingDir %A_ScriptDir% ; Ensures a consistent starting directory.
 #Include <UseGDIP>
 #Include <Class_ScrollGUI>
 
-#Include Src/Constants.ahk
 #Include Src/Globals.ahk
+#Include Src/Constants.ahk
 #Include Src/Styles.ahk
 #Include Src/Utility.ahk
 
 ;@Ahk2Exe-IgnoreBegin
 EnvGet, envDebug, ahk-mb-automation-debug
 if (envDebug) {
-    G_DEBUG_MODE := True
+    G_APP.debug := true
 }
 ;@Ahk2Exe-IgnoreEnd
 
@@ -28,7 +28,7 @@ for argIndex in A_Args
 {
     if (A_Args[argIndex] == "--debug") {
         logLevel := 3
-        G_DEBUG_MODE := True
+        G_APP.debug := true
     }
 
     if (A_Args[argIndex] == "--loglevel" && (argIndex + 1 <= A_Args.MaxIndex())) {
@@ -38,7 +38,7 @@ for argIndex in A_Args
 
 ; Init logger
 #Include Src/Class/Logger.class.ahk
-G_LOGGER := new Logger(G_PROGRAMM_FOLDER "logs\", "log", logLevel, G_DEBUG_MODE)
+G_LOGGER := new Logger(G_APP.program_folder . "logs\", "log", logLevel, G_APP.debug)
 
 ; Logic Class & GUI
 #Include Src/Class/Automation.class.ahk
@@ -63,7 +63,7 @@ global G_GUI_MAIN = new GuiMain()
 ; HOTKEYS
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; CTRL + SHIFT + V
+; `CTRL+SHIFT+V`
 ; Inserts value but cleaned up to support paste from calc / excel
 ^+V::
     if (!HasExeFocus()) {
@@ -73,7 +73,7 @@ global G_GUI_MAIN = new GuiMain()
     SendRaw % clipboard2
 return
 
-; CTRL + SHIFT + K
+; `CTRL+SHIFT+K`
 ; Hotkey to set selected Buchung with the given Verwendung
 ^+K::
     if (!HasExeFocus()) {
@@ -82,6 +82,11 @@ return
     G_GUI_MAIN.events.OnButtonExecuteVerwendung()
 return
 
-; Exit app if ESC is pressed
+; Reload app if `ESC` is pressed, to stop any automation, etc
 Esc::
+    Reload
+return
+
+; Exit App with `SHIFT+ESC`
++Esc::
 ExitApp

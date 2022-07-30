@@ -1,31 +1,33 @@
 ﻿#NoEnv ; Recommended for performance and compatibility with future AutoHotkey releases.
 #Warn ; Enable warnings to assist with detecting common errors.
 
+; Handles saved Buchungen & Splittbuchungen
 Class Buchungen {
     Static Buchungen := []
     Static Splitt := []
     Static Verwendungen := []
 
-    Static IsProcessing := False
-    Static ProcessingTask := "None"
+    Static EntriesFilePath := ""
+
+    Static Quick := { Splitt: {}, Buchung: {} }
 
     __New() {
+        this.EntriesFilePath := G_APP.program_folder . "entries.json"
+        this.DefaultSplittEntry := { label: "Splittbuchung", betrag: 0, konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
+        this.Quick.Buchung := { label: "Quick Buchung", betrag: 0, konto: 0, steuer: 0, beleg: "", verwendung: C_VERWENDUNGEN_KEINE_ANGABE }
+        this.Quick.Splitt := { label: "Quick Splittbuchung", buchungen: []}
+        this.Quick.Splitt.buchungen.Push(this.DefaultSplittEntry)
+
         this.ReadJSON()
     }
 
-    SetProcessing(processing := True, info := "Please wait...") {
-        this.IsProcessing := processing
-        this.ProcessingTask := info
-        G_GUI_MAIN.Show()
-    }
-
-    ReadJSON()
-    {
+    ; Read JSON entries and stores them
+    ReadJSON() {
         this.Buchungen := []
         this.Splitt := []
         this.Verwendungen := [C_VERWENDUNGEN_KEINE_ANGABE]
 
-        FileRead, JsonContent, %G_ENTRIES_FILE%
+        FileRead, JsonContent, % this.EntriesFilePath
         if not ErrorLevel
         {
             entries := JSON.Load(JsonContent)
@@ -44,8 +46,8 @@ Class Buchungen {
         }
     }
 
-    WriteJSON()
-    {
+    ; Write entries to JSON file
+    WriteJSON() {
         entries := {}
         entries.buchungen := this.Buchungen
         entries.splitt := this.Splitt
@@ -58,75 +60,74 @@ Class Buchungen {
         }
 
         JsonContent := JSON.Dump(entries)
-        FileAppend, %JsonContent%, %G_ENTRIES_FILE%.new
+        FileAppend, %JsonContent%, % this.EntriesFilePath . ".new"
         if not ErrorLevel
         {
-            FileMove, %G_ENTRIES_FILE%.new, %G_ENTRIES_FILE%, true
+            FileMove, % this.EntriesFilePath . ".new", % this.EntriesFilePath, true
             if ErrorLevel
             {
-                ErrorMessage("Überschreiben / Erstellen der Buchungen nicht möglich: " . G_ENTRIES_FILE)
+                ErrorMessage("Überschreiben / Erstellen der Buchungen nicht möglich: " . this.EntriesFilePath)
             }
         } else {
-            ErrorMessage("Erstellen der Buchungen nicht möglich: " . G_ENTRIES_FILE)
+            ErrorMessage("Erstellen der Buchungen nicht möglich: " . this.EntriesFilePath)
         }
     }
 
-    AddSplittbuchung()
-    {
+    ; Add a new Splittbuchung
+    AddSplittbuchung() {
         this.Splitt.Push({ label: "Neue Splittbuchung", buchungen: [] })
         this.WriteJSON()
 
         G_GUI_MAIN.Show(2)
     }
 
-    AddSplittbuchungEntry(index, amount)
-    {
-        global G_NEW_SPLITENTRY
-
+    ; Add a new Splittbuchung entry
+    AddSplittbuchungEntry(index, amount) {
         if (index == -1) {
             Loop %amount%
-                G_QUICK_SPLIT.buchungen.Push(G_NEW_SPLITENTRY)
+                G_BUCHUNGEN.Quick.Splitt.buchungen.Push(this.DefaultSplittEntry)
             return
         }
 
         Loop %amount%
-            this.Splitt[index].buchungen.Push(G_NEW_SPLITENTRY)
+            this.Splitt[index].buchungen.Push(this.DefaultSplittEntry)
 
         this.WriteJSON()
     }
 
-    AddBuchung()
-    {
+    ; Add a new Buchung
+    AddBuchung() {
         this.Buchungen.Push({ label: "Neue Buchung", konto: 0, steuer: 0, verwendung: C_VERWENDUNGEN_KEINE_ANGABE })
         this.WriteJSON()
 
         G_GUI_MAIN.Show()
     }
 
-    GetVerwendungString()
-    {
+    ; Returns Verwendungen as string
+    GetVerwendungString() {
         return ArrJoin("|", this.Verwendungen)
     }
 
-    SetVerwendungen(verwendungen)
-    {
+    ; Set Verwendungen
+    SetVerwendungen(verwendungen) {
         this.Verwendungen := verwendungen
         this.Verwendungen.InsertAt(1, C_VERWENDUNGEN_KEINE_ANGABE)
     }
 
-    AddVerwendung()
-    {
+    ; Add new Verwendung
+    AddVerwendung() {
         this.Verwendungen.Push("Neue Verwendung")
         this.WriteJSON()
     }
 
-    RemoveVerwendung(index)
-    {
+    ; Remove Verwendung at {index}
+    RemoveVerwendung(index) {
         index += 1 ; we must add +1 because the first index is the default one and must stay
         this.Verwendungen.RemoveAt(index)
         this.WriteJSON()
     }
 
+    ; Move Verwendung entry in array from {index} to {newIndex}
     MoveVerwendung(index, newIndex)
     {
         index += 1 ; we must add +1 because the first index is the default one and must stay
@@ -143,8 +144,8 @@ Class Buchungen {
         this.WriteJSON()
     }
 
-    RemoveEntry(type, index)
-    {
+    ; Remove the given {index} Buchung / Splittbuchung entry depending on {type}
+    RemoveEntry(type, index) {
         label := ""
         if (type == "buchung") {
             label := this.Buchungen[index].label
@@ -169,13 +170,13 @@ Class Buchungen {
             return
     }
 
-    RemoveSplittEntry(index, splittIndex)
-    {
+    ; Remove the entry at {index} of the given Splittbuchung {splittIndex}
+    RemoveSplittEntry(index, splittIndex) {
         MsgBox, 4,, Splitt-Eintrag löschen?
         IfMsgBox Yes
         {
             if (splittIndex == -1) {
-                G_QUICK_SPLIT.buchungen.RemoveAt(index)
+                G_BUCHUNGEN.Quick.Splitt.buchungen.RemoveAt(index)
             } else {
                 this.Splitt[splittIndex].buchungen.RemoveAt(index)
             }
@@ -186,8 +187,8 @@ Class Buchungen {
             return
     }
 
-    MoveEntry(type, index, newIndex, splittIndex=1)
-    {
+    ; Move Splittbuchung, Splittbuchgung Entry or Buchung depending on {type} from {index} to {newIndex}
+    MoveEntry(type, index, newIndex, splittIndex=1) {
         G_Logger.Debug("MoveEntry -> " . type . "from" . index . "to new" . newIndex . "(splittIndex: " . splittIndex . ")")
 
         ; arrays start at 1 and .Length() is the last index x.x
@@ -201,7 +202,7 @@ Class Buchungen {
             this.Splitt := MoveArrayEntry(this.Splitt, index, newIndex)
         } else if (type == "splitt-entry") {
             if (splittIndex == -1) {
-                G_QUICK_SPLIT.buchungen := MoveArrayEntry(G_QUICK_SPLIT.buchungen, index, newIndex)
+                G_BUCHUNGEN.Quick.Splitt.buchungen := MoveArrayEntry(G_BUCHUNGEN.Quick.Splitt.buchungen, index, newIndex)
             } else {
                 if (this.Splitt.Length() < 1 || splittIndex > this.Splitt.Length()) {
                     return

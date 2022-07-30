@@ -14,6 +14,10 @@ class GuiMain
         this.Show()
     }
 
+    __Delete() {
+        this.events.Clear()
+    }
+
     ; Show the UI
     Show(SelectedTab := 1) {
 
@@ -21,7 +25,7 @@ class GuiMain
             this.events.Clear()
         }
 
-        Gui, Main:New, +hwndhGui +Resize
+        Gui, Main:New, +hwndhGui +Resize +E0x08000000
         this.hwnd := hGui
         this.controls := {}
         this.controls.quick := { buchung: {}, splitt: {} }
@@ -31,143 +35,146 @@ class GuiMain
         Gui, Main:Color, % G_STYLES.main.color
         Gui, Main:+LastFound
 
-        if (G_BUCHUNGEN.IsProcessing) {
-            this.wasProcessing := true
-            Gui, Main:Add, Text,, Automatisierung ist aktiv... bitte warten und nicht interagieren!
-            Gui, Main:Add, Text,,
-            Gui, Main:Add, Text,, % "(" . G_BUCHUNGEN.ProcessingTask . ")"
-            Gui, Main:Add, Text,,
-            Gui, Main:Add, Text,, Abbruch mit ESC Taste
-        } else {
-            this.wasProcessing := false
+        ; -- Processing
+        this.controls.processing := []
+        txt := "`n`nAutomatisierung ist aktiv... bitte warten und nicht interagieren!`n"
+        txt := txt . "(" . G_AUTOMATION.ProcessingTask . ")`n`n"
 
-            editText := "Bearbeiten"
-            editStyle := G_STYLES.btn.info
-            if (this.bToggleEdit) {
-                editText := "Fertig"
-                editStyle := G_STYLES.btn.success
-            }
+        Gui, Main:Add, Text, Center w450 hwndCtlText, % txt
+        this.controls.processing.Push(CtlText)
+        GuiControl, Main:Hide, % CtlText
 
-            Gui, Main:Add, Button, xm+335 ym-5 w80 hwndBtn, %editText%
-            ImageButton.Create(Btn, editStyle*)
-            this.controls.btn_edit := Btn
+        Gui, Main:Font, bold
+        Gui, Main:Add, Text, cRed Center w450 hwndCtlText, % "Abbruch mit ESC Taste"
+        this.controls.processing.Push(CtlText)
+        GuiControl, Main:Hide, % CtlText
+        Gui, Main:Font,
 
-            Gui, Main:Add, Tab3, xm ym AltSubmit Choose%SelectedTab% hwndTab, Buchung | Splittbuchung | Aktionen | Quick
-            this.controls.tab := Tab
-            Gui, Main:Tab, 1
+        this.wasProcessing := G_AUTOMATION.IsProcessing
+        ; ~~ Processing
 
-            this.controls.buchung := []
-            for index, value in G_BUCHUNGEN.Buchungen {
-                this.controls.buchung.Push(this.GuiBuchungRow(index, value))
-            }
+        editText := !this.bToggleEdit ? "Bearbeiten" : "Fertig"
+        editStyle := !this.bToggleEdit ? G_STYLES.btn.info : G_STYLES.btn.success
 
-            ; Neue Buchung Btn
-            Gui, Main:Add, Button, xm+5 y+10 section w120 hwndBtn, Neue Buchung hinzufügen
-            ImageButton.Create(Btn, G_STYLES.btn.info*)
-            this.controls.btn_add_buchung := Btn
+        Gui, Main:Add, Button, xm+335 ym-5 w80 hwndBtn, %editText%
+        ImageButton.Create(Btn, editStyle*)
+        this.controls.btn_edit := Btn
 
-            ; ----
+        Gui, Main:Add, Tab3, xm ym AltSubmit Choose%SelectedTab% hwndTab, Buchung | Splittbuchung | Aktionen | Quick
+        this.controls.tab := Tab
+        Gui, Main:Tab, 1
 
-            Gui, Main:Tab, 2
-            this.controls.splitt := []
-            for i, value in G_BUCHUNGEN.Splitt {
-                this.controls.splitt.Push(this.GuiSplittBuchungRow(i, value))
-            }
-
-            ; Neue Splitt Buchung Btn
-            Gui, Main:Add, Button, xm+5 y+10 section w120 hwndBtn, Neue Splittbuchung hinzufügen
-            ImageButton.Create(Btn, G_STYLES.btn.info*)
-            this.controls.btn_add_splittbuchung := Btn
-
-            ; ----
-
-            Gui, Main:Tab, 3
-            ; Verwendung
-            Gui, Main:Add, GroupBox, xm+10 y+5 w390 h70 section,
-            Gui, Main:Add, Button, xs+5 ys+11 w160 hwndBtn, Verwendung [STRG+SHIFT+K]
-            ImageButton.Create(Btn, G_STYLES.btn.main*)
-            this.controls.btn_verwendung := Btn
-
-            strVerwendungen := G_BUCHUNGEN.GetVerwendungString()
-            Gui, Main:Add, DDL, xs+175 ys+12 w140 +Choose1 hwndInput, %strVerwendungen%
-            this.controls.input_verwendung := Input
-
-            Gui, Main:Add, CheckBox, xs+5 y+10 hwndCbox, Ist Splittbuchung? Bearbeite Eintrag No.:
-            this.controls.cbox_verwendung_splitt := Cbox
-
-            Gui, Main:Add, Edit, w40 x+3 y+-16 hwndCtrlId Disabled
-            this.controls.input_verwendung_splitt := CtrlId
-            Gui, Main:Add, UpDown, Range1-100 , 1
-
-            ; Belegnummer
-            Gui, Main:Add, GroupBox, xm+10 y+20 w390 h40 section,
-            Gui, Main:Add, Button, xs+5 ys+11 w160 hwndBtn, Belegnummer
-            ImageButton.Create(Btn, G_STYLES.btn.main*)
-            this.controls.btn_belegnummer := Btn
-
-            Gui, Main:Add, Edit, xs+175 ys+12 w140 r1 hwndInput,
-            this.controls.input_belegnummer := Input
-
-            ; Settings Button
-            Gui, Main:Add, Button, xm+10 y+20 w80 section hwndBtn, Einstellungen
-            ImageButton.Create(Btn, G_STYLES.btn.info*)
-            this.controls.btn_settings := Btn
-
-            Gui, Main:Add, Button, x+10 ys w90 hwndBtn, Verwendungen
-            ImageButton.Create(Btn, G_STYLES.btn.info*)
-            this.controls.btn_edit_verwendungen := Btn
-
-            ; ------ Quick Buchung
-
-            Gui, Main:Tab, 4
-
-            ; --- row 1
-            Gui, Main:Add, GroupBox, xm+10 y+5 w440 h120 section
-
-            ; Buchung Btn
-            Gui, Main:Add, Button, xs+5 ys+28 w120 hwndBtn, Buchung
-            ImageButton.Create(Btn, G_STYLES.btn.main*)
-            this.controls.quick.buchung.submit := Btn
-
-            ; Verwendung
-            Gui, Main:Font, bold
-            Gui, Main:Add, Text, xs+135 ys+10 w140, Verwendung:
-            Gui, Main:Font,
-            strVerwendungen := G_BUCHUNGEN.GetVerwendungString()
-            val := ArrIndexOf(G_BUCHUNGEN.Verwendungen, G_QUICK_BUCHUNG.verwendung, 1)
-            Gui, Main:Add, DropDownList, xs+135 ys+28 wp hwndInput +Choose%val%, %strVerwendungen%
-            this.controls.quick.buchung.verwendung := Input
-
-            ; Belegnummer
-            Gui, Main:Font, bold
-            Gui, Main:Add, Text, xs+290 ys+10 w140, Belegnummer:
-            Gui, Main:Font,
-            Gui, Main:Add, Edit, xs+290 ys+28 wp hwndInput, % G_QUICK_BUCHUNG.beleg
-            this.controls.quick.buchung.belegnummer := Input
-
-            ; --- row 2
-
-            ; Konto
-            Gui, Main:Font, bold
-            Gui, Main:Add, Text, xs+5 ys+65 w70 section, Konto:
-            Gui, Main:Font,
-            Gui, Main:Add, Edit, xs+5 ys+18 wp hwndInput, % G_QUICK_BUCHUNG.konto
-            this.controls.quick.buchung.konto := Input
-
-            ; Steuersatz
-            Gui, Main:Font, bold
-            Gui, Main:Add, Text, xs+85 ys w140, Steuersatz:
-            Gui, Main:Font,
-            val := G_QUICK_BUCHUNG.steuer
-            Gui, Main:Add, DDL, xs+85 ys+18 wp hwndInput +AltSubmit +Choose%val%, %C_STEUERN%
-            this.controls.quick.buchung.steuer := Input
-
-            ; Quick Splittbuchung
-            Gui, Main:Add, Text, xm+0 y+5, ; used to position the buchung row properly
-            this.controls.quick.splitt := this.GuiSplittBuchungRow(-1, G_QUICK_SPLIT)
-
-            Gui, Main:Tab
+        this.controls.buchung := []
+        for index, value in G_BUCHUNGEN.Buchungen {
+            this.controls.buchung.Push(this.GuiBuchungRow(index, value))
         }
+
+        ; Neue Buchung Btn
+        Gui, Main:Add, Button, xm+5 y+10 section w120 hwndBtn, Neue Buchung hinzufügen
+        ImageButton.Create(Btn, G_STYLES.btn.info*)
+        this.controls.btn_add_buchung := Btn
+
+        ; ----
+
+        Gui, Main:Tab, 2
+        this.controls.splitt := []
+        for i, value in G_BUCHUNGEN.Splitt {
+            this.controls.splitt.Push(this.GuiSplittBuchungRow(i, value))
+        }
+
+        ; Neue Splitt Buchung fD
+        Gui, Main:Add, Button, xm+5 y+10 section w120 hwndBtn, Neue Splittbuchung hinzufügen
+        ImageButton.Create(Btn, G_STYLES.btn.info*)
+        this.controls.btn_add_splittbuchung := Btn
+
+        ; ----
+
+        Gui, Main:Tab, 3
+        ; Verwendung
+        Gui, Main:Add, GroupBox, xm+10 y+5 w390 h70 section,
+        Gui, Main:Add, Button, xs+5 ys+11 w160 hwndBtn, Verwendung [STRG+SHIFT+K]
+        ImageButton.Create(Btn, G_STYLES.btn.main*)
+        this.controls.btn_verwendung := Btn
+
+        strVerwendungen := G_BUCHUNGEN.GetVerwendungString()
+        Gui, Main:Add, DDL, xs+175 ys+12 w140 +Choose1 hwndInput, %strVerwendungen%
+        this.controls.input_verwendung := Input
+
+        Gui, Main:Add, CheckBox, xs+5 y+10 hwndCbox, Ist Splittbuchung? Bearbeite Eintrag No.:
+        this.controls.cbox_verwendung_splitt := Cbox
+
+        Gui, Main:Add, Edit, w40 x+3 y+-16 hwndCtrlId Disabled
+        this.controls.input_verwendung_splitt := CtrlId
+        Gui, Main:Add, UpDown, Range1-100 , 1
+
+        ; Belegnummer
+        Gui, Main:Add, GroupBox, xm+10 y+20 w390 h40 section,
+        Gui, Main:Add, Button, xs+5 ys+11 w160 hwndBtn, Belegnummer
+        ImageButton.Create(Btn, G_STYLES.btn.main*)
+        this.controls.btn_belegnummer := Btn
+
+        Gui, Main:Add, Edit, xs+175 ys+12 w140 r1 hwndInput,
+        this.controls.input_belegnummer := Input
+
+        ; Settings Button
+        Gui, Main:Add, Button, xm+10 y+20 w80 section hwndBtn, Einstellungen
+        ImageButton.Create(Btn, G_STYLES.btn.info*)
+        this.controls.btn_settings := Btn
+
+        Gui, Main:Add, Button, x+10 ys w90 hwndBtn, Verwendungen
+        ImageButton.Create(Btn, G_STYLES.btn.info*)
+        this.controls.btn_edit_verwendungen := Btn
+
+        ; ------ Quick Buchung
+
+        Gui, Main:Tab, 4
+
+        ; --- row 1
+        Gui, Main:Add, GroupBox, xm+10 y+5 w440 h120 section
+
+        ; Buchung Btn
+        Gui, Main:Add, Button, xs+5 ys+28 w120 hwndBtn, Buchung
+        ImageButton.Create(Btn, G_STYLES.btn.main*)
+        this.controls.quick.buchung.submit := Btn
+
+        ; Verwendung
+        Gui, Main:Font, bold
+        Gui, Main:Add, Text, xs+135 ys+10 w140, Verwendung:
+        Gui, Main:Font,
+        strVerwendungen := G_BUCHUNGEN.GetVerwendungString()
+        val := ArrIndexOf(G_BUCHUNGEN.Verwendungen, G_BUCHUNGEN.Quick.Buchung.verwendung, 1)
+        Gui, Main:Add, DropDownList, xs+135 ys+28 wp hwndInput +Choose%val%, %strVerwendungen%
+        this.controls.quick.buchung.verwendung := Input
+
+        ; Belegnummer
+        Gui, Main:Font, bold
+        Gui, Main:Add, Text, xs+290 ys+10 w140, Belegnummer:
+        Gui, Main:Font,
+        Gui, Main:Add, Edit, xs+290 ys+28 wp hwndInput, % G_BUCHUNGEN.Quick.Buchung.beleg
+        this.controls.quick.buchung.belegnummer := Input
+
+        ; --- row 2
+
+        ; Konto
+        Gui, Main:Font, bold
+        Gui, Main:Add, Text, xs+5 ys+65 w70 section, Konto:
+        Gui, Main:Font,
+        Gui, Main:Add, Edit, xs+5 ys+18 wp hwndInput, % G_BUCHUNGEN.Quick.Buchung.konto
+        this.controls.quick.buchung.konto := Input
+
+        ; Steuersatz
+        Gui, Main:Font, bold
+        Gui, Main:Add, Text, xs+85 ys w140, Steuersatz:
+        Gui, Main:Font,
+        val := G_BUCHUNGEN.Quick.Buchung.steuer
+        Gui, Main:Add, DDL, xs+85 ys+18 wp hwndInput +AltSubmit +Choose%val%, %C_STEUERN%
+        this.controls.quick.buchung.steuer := Input
+
+        ; Quick Splittbuchung
+        Gui, Main:Add, Text, xm+0 y+5, ; used to position the buchung row properlyV
+        this.controls.quick.splitt := this.GuiSplittBuchungRow(-1, G_BUCHUNGEN.Quick.Splitt)
+
+        Gui, Main:Tab
 
         ; Create ScrollGUI1 with both horizontal and vertical scrollbars and scrolling by mouse wheel
         this.scrollWindow := new ScrollGUI(this.hwnd, 480, 400, "+Resize", 3, 4)
@@ -176,19 +183,21 @@ class GuiMain
         if (this.old.x == 0 && this.old.y == 0) {
             this.old.x := "center"
             this.old.y := "center"
+            this.scrollWindow.AdjustToChild()
             this.StorePosition()
         } else {
             this.scrollWindow.Width := this.old.w
             this.scrollWindow.Height := this.old.h
         }
 
-        mainTitle := "MB Automation - " . G_VERSION
-        this.scrollWindow.Show(mainTitle, Format("x{1} y{2}", this.old.x, this.old.y))
+        mainTitle := "MB Automation - " . G_APP.version
 
-        if (G_BUCHUNGEN.IsProcessing) {
-            Gui, Main:Show, NA, % mainTitle
+        if (G_AUTOMATION.IsProcessing) {
+            this.scrollWindow.Show(mainTitle, Format("x{1} y{2} NA NoActivate", this.old.x, this.old.y))
+            Gui, Main:Show, NA NoActivate, % mainTitle
             FocusWindowMB()
         } else {
+            this.scrollWindow.Show(mainTitle, Format("x{1} y{2}", this.old.x, this.old.y))
             Gui, Main:Show,, % mainTitle
         }
 
@@ -199,8 +208,26 @@ class GuiMain
         this.events := new this.EventHook(this)
     }
 
-    __Delete() {
-        this.events.Clear()
+    ; Shows a processing info text instead of Main GUI
+    ShowProcessing(hide := true) {
+        GuiControl, % "Main:" . (hide ? "Hide" : "Show"), % this.controls.tab
+        GuiControl, % "Main:" . (hide ? "Hide" : "Show"), % this.controls.btn_edit
+
+        for i, ctrl in this.controls.processing {
+            GuiControl, % "Main:" . (!hide ? "Hide" : "Show"), % ctrl
+        }
+
+        Gui, % this.scrollWindow.HWND ":Hide"
+
+        w := hide ? 450 : this.old.w
+        h := hide ? 200 :this.old.h
+
+        ; idk why but we must increment by one and later remove 1 to make it resize properly
+        this.scrollWindow.Width := w+1
+        this.scrollWindow.Height := h+1
+        this.scrollWindow.Show("MB Automation - " . G_APP.version, Format("x{1} y{2}", this.old.x, this.old.y))
+        this.scrollWindow.AdjustToChild()
+        this.scrollWindow.Size(w, h)
     }
 
     ; Store window position and size
@@ -215,7 +242,6 @@ class GuiMain
     ; Get the selected tab index
     GetSelectedTab() {
         GuiControlGet, TabIndex, , % this.controls.tab
-        OutputDebug, % TabIndex
         return TabIndex
     }
 
@@ -472,16 +498,16 @@ class GuiMain
                 if (index == -1) {
                     ; update the quick entry first
                     GuiControlGet, Val, , % this.ui.controls.quick.buchung.verwendung
-                    G_QUICK_BUCHUNG.verwendung := Val
+                    G_BUCHUNGEN.Quick.Buchung.verwendung := Val
 
                     GuiControlGet, Val, , % this.ui.controls.quick.buchung.belegnummer
-                    G_QUICK_BUCHUNG.belegnummer := Val
+                    G_BUCHUNGEN.Quick.Buchung.belegnummer := Val
 
                     GuiControlGet, Val, , % this.ui.controls.quick.buchung.konto
-                    G_QUICK_BUCHUNG.konto := Val
+                    G_BUCHUNGEN.Quick.Buchung.konto := Val
 
                     GuiControlGet, Val, , % this.ui.controls.quick.buchung.steuer
-                    G_QUICK_BUCHUNG.steuer := Val
+                    G_BUCHUNGEN.Quick.Buchung.steuer := Val
                 }
 
                 G_AUTOMATION.ExecuteBuchung(index)
@@ -544,7 +570,7 @@ class GuiMain
                 return
             }
 
-            if (!G_BUCHUNGEN.IsProcessing && !this.ui.wasProcessing) {
+            if (!G_AUTOMATION.IsProcessing && !this.ui.wasProcessing) {
                 this.ui.StorePosition()
             }
         }

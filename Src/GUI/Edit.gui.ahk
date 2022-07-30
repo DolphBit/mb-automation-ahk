@@ -4,7 +4,9 @@
 ; UI for Buchung
 class GuiEdit
 {
-    __New() {
+    __Delete() {
+        try Gui, % this.hwnd . ":Destroy"
+        this.events.Clear()
     }
 
     ; Show the UI for the given {index} Buchung
@@ -78,11 +80,6 @@ class GuiEdit
         }
 
         this.events := new this.EventHook(this)
-    }
-
-    __Delete() {
-        try Gui, % this.hwnd . ":Destroy"
-        this.events.Clear()
     }
 
     ; Get all control values

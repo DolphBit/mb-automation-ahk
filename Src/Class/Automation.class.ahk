@@ -3,37 +3,69 @@
 
 ; Handles Automation logic
 Class Automation {
+
+    Static IsProcessing := false
+    Static ProcessingTask := "None"
+    Static LastSelectedTab := 1
+
+    ; Toggle Processing Mode
+    SetProcessing(processing := true, info := "Please wait...") {
+        if (processing == this.IsProcessing) {
+            return
+        }
+        G_LOGGER.Info("Set Processing to " . processing . " (" . info . ")")
+
+        if (processing) {
+            this.LastSelectedTab := G_GUI_MAIN.GetSelectedTab()
+        }
+
+        this.IsProcessing := processing
+        this.ProcessingTask := info
+        G_GUI_MAIN.ShowProcessing(processing)
+
+        ; wait some time before executing, to allow user leave the RDP screen, etc.
+        Sleep (G_SETTINGS.automationDelay * 1000)
+    }
+
     ; Automation for Buchung
     ExecuteBuchung(index) {
-        if (!FocusWindowMB() || !HasFocusZahlung()) {
-            return False
+        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung()) {
+            return false
         }
 
         if (index == -1) {
-            buchung := G_QUICK_BUCHUNG
+            buchung := G_BUCHUNGEN.Quick.Buchung
         } else {
             if (G_BUCHUNGEN.Buchungen.Length() < index || index < 1) {
                 ErrorMessage("Ungültige Buchung")
-                return False
+                return false
             }
             buchung := G_BUCHUNGEN.Buchungen[index]
         }
 
         G_Logger.Debug("ExecuteBuchung -> " . buchung.label)
-        G_BUCHUNGEN.SetProcessing(True, "Führe Buchung (" . buchung.label . ") durch...")
+        this.SetProcessing(true, "Führe Buchung (" . buchung.label . ") durch...")
 
         Send, {F11}
         G_LOGGER.Debug("BuchungDurchführen -> öffne Bearbeiten")
         if (!WaitForZahlungWindow()) {
-            G_BUCHUNGEN.SetProcessing(False)
-            return False
+            this.SetProcessing(false)
+            return false
+        }
+
+        if (!this.CheckExeFocus()) {
+            return false
         }
 
         Send, {F2}
         G_LOGGER.Debug("BuchungDurchführen -> Weitere Konto Auswahl")
         if (!WaitForSteuerkategorieWindow()) {
-            G_BUCHUNGEN.SetProcessing(False)
-            return False
+            this.SetProcessing(false)
+            return false
+        }
+
+        if (!this.CheckExeFocus()) {
+            return false
         }
 
         G_LOGGER.Debug("Enter Konto " . buchung.konto . " and use it...")
@@ -48,6 +80,10 @@ Class Automation {
         ControlGet, CtrlHwnd, Hwnd,, %C_CTRL_VERWENDUNG_CLASSNN%, ahk_class %C_WIN_ZAHLUNG_CLASS%
         if (ErrorLevel || !CtrlHwnd) {
             ErrorMessage("Verwendung konnte nicht gefunden werden, vermutlich gab es ein Problem mit dem Konto. Existiert es und ist die Sichtbarkeit richtig eingestellt?")
+            return false
+        }
+
+        if (!this.CheckExeFocus()) {
             return false
         }
 
@@ -66,41 +102,45 @@ Class Automation {
             Sleep, 500
         }
 
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
         this.SendOk()
-        G_BUCHUNGEN.SetProcessing(False)
+        this.SetProcessing(false)
     }
 
     ; Automation for Splittbuchung
     ExecuteSplittbuchung(index) {
-        if (!FocusWindowMB() || !HasFocusZahlung()) {
-            return False
+        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung()) {
+            return false
         }
 
         if(index == -1) {
-            splitt := G_QUICK_SPLIT
+            splitt := G_BUCHUNGEN.Quick.Splitt
         } else {
             if (G_BUCHUNGEN.Splitt.Length() < index || index < 1) {
                 ErrorMessage("Ungültige Buchung")
-                return False
+                return false
             }
             splitt := G_BUCHUNGEN.Splitt[index]
         }
 
         label := splitt.label
 
-        G_BUCHUNGEN.SetProcessing(True, "Führe Splittbuchung (" . label . ") durch...")
+        this.SetProcessing(true, "Führe Splittbuchung (" . label . ") durch...")
 
         G_LOGGER.Debug("ExecuteSplittbuchung -> " . label . "(index:" . index . ")")
         if (!this.GoToSplittbuchung()) {
-            G_BUCHUNGEN.SetProcessing(False)
-            return False
+            this.SetProcessing(false)
+            return false
         }
 
         for i, entry in splitt.buchungen {
             if (!this.SplittbuchungSteuerkategorie(entry.konto, cleanupAmount(entry.betrag), entry.steuer, entry.verwendung)) {
 
-                G_BUCHUNGEN.SetProcessing(False)
-                return False
+                this.SetProcessing(false)
+                return false
             }
 
             Sleep 1000
@@ -108,20 +148,20 @@ Class Automation {
 
         this.SendOk()
 
-        G_BUCHUNGEN.SetProcessing(False)
-        return True
+        this.SetProcessing(false)
+        return true
     }
 
     ; Goes to Splittbuchung within Zahlung window
     GoToSplittbuchung() {
         if (!FocusWindowMB() || !HasFocusZahlung()) {
-            return False
+            return false
         }
 
         Send, {F11}
         G_LOGGER.Debug("ExecuteSplittbuchungEntry -> öffne Barbeiten")
         if (!WaitForZahlungWindow()) {
-            return False
+            return false
         }
 
         ControlGet, CtrlZahlungVerwerfen, Hwnd,, %C_CTRL_ZAHLUNG_VERWERFEN_CLASSNN%, ahk_class %C_WIN_ZAHLUNG_CLASS%
@@ -131,15 +171,18 @@ Class Automation {
             if (CtrlZahlungVerwerfenEnabled == 1)
             {
                 ControlGetText, CtrlZahlungVerwerfenText,, ahk_id %CtrlZahlungVerwerfen%
-                if (CtrlZahlungVerwerfenText != C_CTRL_ZAHLUNG_VERWERFEN_TEXT)
-                {
+                if (CtrlZahlungVerwerfenText != C_CTRL_ZAHLUNG_VERWERFEN_TEXT) {
                     ErrorMessage("Keine Zuordnung Button ist nicht gültig!")
-                    return False
+                    return false
                 }
                 SetControlDelay -1
                 ControlClick,, ahk_id %CtrlZahlungVerwerfen%
                 SetControlDelay %G_DEFAULT_DELAY%
             }
+        }
+
+        if (!this.CheckExeFocus()) {
+            return false
         }
 
         G_LOGGER.Debug("Wait for Steuerkonto to be visible...")
@@ -149,23 +192,27 @@ Class Automation {
             ControlGet, state, enabled,, %C_CTRL_BTN_STEUERKONTO_TEXT%, ahk_class %C_WIN_ZAHLUNG_CLASS%
             Sleep 250
             waitCount += 1
-        } until (state == True or waitCount >= G_WAIT_TIMEOUT_COUNTER * 4)
+        } until (state == true or waitCount >= G_APP.timeout.counter * 4)
         if (!state) {
             ErrorMessage(C_CTRL_BTN_STEUERKONTO_TEXT . " wurde nicht gefunden!")
-            return False
+            return false
         }
 
         G_LOGGER.Debug("Click on Splittbuchung")
 
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
         ; ControlClick does not work, so we get the pos, move and click
         if (!MoveMouseAndClickOnControl(C_CTRL_BTN_SPLITTBUCHUNG_TEXT, C_WIN_ZAHLUNG_CLASS, true)) {
-            return False
+            return false
         }
 
         G_LOGGER.Debug("Wait for Neue Splittbuchung to be visible")
         ; Wait for Neue Splittbuchung to be visible
         waitCount := 0
-        state := False
+        state := false
         loop {
             if (Mod(waitCount, 3) == 0) {
                 ; try to click again every sec
@@ -175,13 +222,18 @@ Class Automation {
             ControlGet, state, enabled,, %C_CTRL_BTN_SPLITTBUCHUNG_NEU_CLASSNN%, ahk_class %C_WIN_ZAHLUNG_CLASS%
             Sleep 250
             waitCount += 1
-        } until (state == True or waitCount >= G_WAIT_TIMEOUT_COUNTER * 4)
+        } until (state == true or waitCount >= G_APP.timeout.counter * 4)
 
         if (!state) {
             ErrorMessage(C_CTRL_BTN_SPLITTBUCHUNG_NEU_TEXT . " wurde nicht gefunden!")
-            return False
+            return false
         }
-        return True
+
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
+        return true
     }
 
     ; Creates a new Splittbuchung entry
@@ -202,7 +254,11 @@ Class Automation {
         SetControlDelay %G_DEFAULT_DELAY%
         if ErrorLevel {
             ErrorMessage("Neue Splittbuchung konnte nicht gedrückt werden!")
-            return False
+            return false
+        }
+
+        if (!this.CheckExeFocus()) {
+            return false
         }
 
         ; Start new "Steuerkategorie" (open dropdown and use "Steuerkategorie")
@@ -210,11 +266,8 @@ Class Automation {
 
         G_LOGGER.Debug("SplittbuchungSteuerkategorie -> auswählen " . Konto . ", " . Betrag . ", " . Steuersatz)
 
-        WinWaitActive, ahk_class %C_WIN_BUCHUNG_ZORDNUNG_CLASS%,, %G_WAIT_TIMEOUT_SEC%
-        if ErrorLevel
-        {
-            ErrorMessage("Steuerkateogrie Fenster (" . C_WIN_BUCHUNG_ZORDNUNG_CLASS . ") nicht offen!")
-            return False
+        if(!WaitForWindowAndActivate(C_WIN_BUCHUNG_ZORDNUNG_CLASS, "Steuerkateogrie Fenster")) {
+            return false
         }
 
         if (Betrag) {
@@ -225,7 +278,7 @@ Class Automation {
         ; Open "weitere" to get all Kontos and search and use correct one
         Send, {F2}
         if (!WaitForSteuerkategorieWindow()) {
-            return False
+            return false
         }
 
         G_LOGGER.Debug("Enter Konto " . Konto . " and use it...")
@@ -240,6 +293,10 @@ Class Automation {
         ControlGet, CtrlHwnd, Hwnd,, %C_CTRL_VERWENDUNG_CLASSNN%, ahk_class %C_WIN_BUCHUNG_ZORDNUNG_CLASS%
         if (ErrorLevel || !CtrlHwnd) {
             ErrorMessage("Verwendung konnte nicht gefunden werden, vermutlich gab es ein Problem mit dem Konto. Existiert es und ist die Sichtbarkeit richtig eingestellt?")
+            return false
+        }
+
+        if (!this.CheckExeFocus()) {
             return false
         }
 
@@ -260,6 +317,10 @@ Class Automation {
         ; lets settle everything in
         Sleep 1000
 
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
         G_LOGGER.Debug("SplittbuchungSteuerkategorie -> send F11 / OK...")
         Send, {F11} ; OK
 
@@ -270,6 +331,10 @@ Class Automation {
     SendSteuersatz(index) {
         G_LOGGER.Debug("SendSteuersatz -> index:" . index)
 
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
         Send, % C_STEUERN_ARR[index]
         Sleep, 500
         Send, {enter}
@@ -278,7 +343,7 @@ Class Automation {
 
     ; Set a Verwendung for a Zahlung
     ExecuteVerwendung(Verwendung, SplittIndex := -1) {
-        if (!FocusWindowMB() || !HasFocusZahlung() || !Verwendung) {
+        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung() || !Verwendung) {
             return false
         }
 
@@ -342,7 +407,11 @@ Class Automation {
             Send, %Verwendung%
         }
 
-        SetKeyDelay, G_DEFAULT_DELAY
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
+        SetKeyDelay, %G_DEFAULT_DELAY%
         Send, {Enter}
         Sleep, 1000
     }
@@ -350,14 +419,14 @@ Class Automation {
     ; Set a Belegnummer for a Zahlung
     ExecuteBelegnummer(Belegnummer) {
         G_LOGGER.Debug("BelegnummerSetzen...")
-        if (!FocusWindowMB() || !HasFocusZahlung() || !Belegnummer) {
-            return False
+        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung() || !Belegnummer ) {
+            return false
         }
 
         Send, {F11}
         G_LOGGER.Debug("BelegnummerSetzen -> öffne Bearbeiten")
         if (!WaitForZahlungWindow()) {
-            return False
+            return false
         }
 
         ; Try to focus Belegnummer
@@ -370,9 +439,13 @@ Class Automation {
             return false
         }
 
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
         SetKeyDelay, 50
         Send, %Belegnummer%
-        SetKeyDelay, G_DEFAULT_DELAY
+        SetKeyDelay, %G_DEFAULT_DELAY%
         Send, {Enter}
 
         this.SendOk()
@@ -380,8 +453,16 @@ Class Automation {
 
     ; Send OK via F11 and optionally ignores the warning
     SendOk() {
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
         G_LOGGER.Debug("SendOk...")
         Send, {F11} ; OK - Abschluss
+
+        if (!this.CheckExeFocus()) {
+            return false
+        }
 
         if (G_SETTINGS.bIgnoreWarning) {
             Sleep, 500
@@ -389,5 +470,23 @@ Class Automation {
         }
 
         G_LOGGER.Debug("SendOk... done")
+    }
+
+    ; Checks if MB is unfocused and abort automation
+    CheckExeFocus() {
+        ; do we have focus?
+        if (HasExeFocus()) {
+            return true
+        }
+
+        ; give it a sec to ensure it truly lost focus
+        WinWaitActive, % "ahk_exe" C_EXE_MAIN,, 1
+        if (!ErrorLevel) {
+            return true
+        }
+
+        WarnMessage("MB war nicht mehr fokusiert. Automatisierung wurde abgebrochen!")
+        this.SetProcessing(false)
+        return false
     }
 }
