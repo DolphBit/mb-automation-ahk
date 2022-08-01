@@ -84,6 +84,9 @@ return
 
 ; Reload app if `ESC` is pressed, to stop any automation, etc
 Esc::
+    if (!G_AUTOMATION.IsProcessing) {
+        return ; only reload if we are actually processing
+    }
     Reload
 return
 

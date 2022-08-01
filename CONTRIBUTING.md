@@ -51,3 +51,12 @@ Your Branch should start with `feature/`, e.g.: `feature/FeatureOrBugFix`
 - Commit your Changes (`git commit -m 'Add some FeatureOrBugFix'`)
 - Push to the Branch (`git push origin feature/FeatureOrBugFix`)
 - Open a [Pull Request](/compare)
+
+### Release
+
+- [] Update `G_APP.version` & `G_APP.date` in `Globals.ahk`
+- [] Update `File_Version` in `mb-automation.ahk.ini` (ensure increment number will be correct before compiling)
+- [] Update [CHANGELOG](/CHANGELOG.md)
+- [] Update [README](/README.md) with last tested MB version
+- [] Compile new exe
+- [] Finalize Release 🥳

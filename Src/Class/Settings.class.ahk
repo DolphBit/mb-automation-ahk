@@ -8,6 +8,8 @@ Class Settings {
     bSKR04 := false
     automationDelay := 1
 
+    triedToCloseAdWindow := false
+
     ; Init Settings
     __New() {
         this.EnsureProgramFolderExists()
@@ -104,6 +106,7 @@ Class Settings {
 
         WinWaitActive, ahk_class %C_WIN_AD_CLASS%,, 5
         if ErrorLevel {
+            this.triedToCloseAdWindow := false
             return
         }
 
@@ -113,6 +116,13 @@ Class Settings {
             ; Should we eventually fall back ato ALT+F4? I highly dislike this hotkey for obvious reason...
             return
         }
+
+        ; failsafe, to only try to close the window once
+        ; otherwise we would eventually click a button way to often and do something stupid...
+        if (this.triedToCloseAdWindow) {
+            return
+        }
+        this.triedToCloseAdWindow := true
 
         G_LOGGER.Debug("Try to close ad window now...")
         SetControlDelay -1

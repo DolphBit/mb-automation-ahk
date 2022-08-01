@@ -11,24 +11,56 @@ Class Automation {
     ; Toggle Processing Mode
     SetProcessing(processing := true, info := "Please wait...") {
         if (processing == this.IsProcessing) {
-            return
+            return false
         }
-        G_LOGGER.Info("Set Processing to " . processing . " (" . info . ")")
 
         if (processing) {
+            G_LOGGER.Info("Enable Processing (" . info . ")")
             this.LastSelectedTab := G_GUI_MAIN.GetSelectedTab()
+        } else {
+            G_LOGGER.Info("Disable Processing")
         }
 
         this.IsProcessing := processing
         this.ProcessingTask := info
         G_GUI_MAIN.ShowProcessing(processing)
 
+        if(!processing) {
+            return true ; no processing anymore, we are done
+        }
+
         ; wait some time before executing, to allow user leave the RDP screen, etc.
         Sleep (G_SETTINGS.automationDelay * 1000)
+
+        return FocusWindowMB()
+    }
+
+    ; Set a Verwendung for a Zahlung
+    ExecuteVerwendung(Verwendung, SplittIndex := -1) {
+        this._AutomateVerwendung(Verwendung, SplittIndex)
+        this.SetProcessing(false)
+    }
+
+    ; Automation for Splittbuchung
+    ExecuteSplittbuchung(index) {
+        this._ExecuteSplittbuchung(index)
+        this.SetProcessing(false)
     }
 
     ; Automation for Buchung
     ExecuteBuchung(index) {
+        this._ExecuteBuchung(index)
+        this.SetProcessing(false)
+    }
+
+    ; Set a Belegnummer for a Zahlung
+    ExecuteBelegnummer(Belegnummer) {
+        this._AutomateBelegnummer(Belegnummer)
+        this.SetProcessing(false)
+    }
+
+    ; (private) Logic of: Automation for Buchung
+    _ExecuteBuchung(index) {
         if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung()) {
             return false
         }
@@ -43,28 +75,19 @@ Class Automation {
             buchung := G_BUCHUNGEN.Buchungen[index]
         }
 
-        G_Logger.Debug("ExecuteBuchung -> " . buchung.label)
-        this.SetProcessing(true, "Führe Buchung (" . buchung.label . ") durch...")
-
-        Send, {F11}
-        G_LOGGER.Debug("BuchungDurchführen -> öffne Bearbeiten")
-        if (!WaitForZahlungWindow()) {
-            this.SetProcessing(false)
+        if (!this.SetProcessing(true, "Führe Buchung '" . buchung.label . "' durch...")) {
             return false
         }
 
-        if (!this.CheckExeFocus()) {
+        Send, {F11}
+        G_LOGGER.Debug("BuchungDurchführen -> öffne Bearbeiten")
+        if (!WaitForZahlungWindow() || !this.CheckExeFocus()) {
             return false
         }
 
         Send, {F2}
         G_LOGGER.Debug("BuchungDurchführen -> Weitere Konto Auswahl")
-        if (!WaitForSteuerkategorieWindow()) {
-            this.SetProcessing(false)
-            return false
-        }
-
-        if (!this.CheckExeFocus()) {
+        if (!WaitForSteuerkategorieWindow() || !this.CheckExeFocus()) {
             return false
         }
 
@@ -106,12 +129,11 @@ Class Automation {
             return false
         }
 
-        this.SendOk()
-        this.SetProcessing(false)
+        return this.SendOk()
     }
 
-    ; Automation for Splittbuchung
-    ExecuteSplittbuchung(index) {
+    ; (private) Logic of Automation for Splittbuchung
+    _ExecuteSplittbuchung(index) {
         if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung()) {
             return false
         }
@@ -128,28 +150,24 @@ Class Automation {
 
         label := splitt.label
 
-        this.SetProcessing(true, "Führe Splittbuchung (" . label . ") durch...")
+        if (!this.SetProcessing(true, "Führe Splittbuchung '" . label . "' durch...")) {
+            return false
+        }
 
         G_LOGGER.Debug("ExecuteSplittbuchung -> " . label . "(index:" . index . ")")
         if (!this.GoToSplittbuchung()) {
-            this.SetProcessing(false)
             return false
         }
 
         for i, entry in splitt.buchungen {
-            if (!this.SplittbuchungSteuerkategorie(entry.konto, cleanupAmount(entry.betrag), entry.steuer, entry.verwendung)) {
-
-                this.SetProcessing(false)
+            if (!this._SplittbuchungSteuerkategorie(entry.konto, cleanupAmount(entry.betrag), entry.steuer, entry.verwendung)) {
                 return false
             }
 
             Sleep 1000
         }
 
-        this.SendOk()
-
-        this.SetProcessing(false)
-        return true
+        return this.SendOk()
     }
 
     ; Goes to Splittbuchung within Zahlung window
@@ -192,6 +210,11 @@ Class Automation {
             ControlGet, state, enabled,, %C_CTRL_BTN_STEUERKONTO_TEXT%, ahk_class %C_WIN_ZAHLUNG_CLASS%
             Sleep 250
             waitCount += 1
+
+            if (!this.CheckExeFocus()) {
+                return false
+            }
+
         } until (state == true or waitCount >= G_APP.timeout.counter * 4)
         if (!state) {
             ErrorMessage(C_CTRL_BTN_STEUERKONTO_TEXT . " wurde nicht gefunden!")
@@ -222,8 +245,12 @@ Class Automation {
             ControlGet, state, enabled,, %C_CTRL_BTN_SPLITTBUCHUNG_NEU_CLASSNN%, ahk_class %C_WIN_ZAHLUNG_CLASS%
             Sleep 250
             waitCount += 1
-        } until (state == true or waitCount >= G_APP.timeout.counter * 4)
 
+            if (!this.CheckExeFocus()) {
+                return false
+            }
+
+        } until (state == true or waitCount >= G_APP.timeout.counter * 4)
         if (!state) {
             ErrorMessage(C_CTRL_BTN_SPLITTBUCHUNG_NEU_TEXT . " wurde nicht gefunden!")
             return false
@@ -236,8 +263,8 @@ Class Automation {
         return true
     }
 
-    ; Creates a new Splittbuchung entry
-    SplittbuchungSteuerkategorie(Konto, Betrag, Steuersatz, Verwendung) {
+    ; (private) Creates a new Splittbuchung entry
+    _SplittbuchungSteuerkategorie(Konto, Betrag, Steuersatz, Verwendung) {
         if (!Konto) { ; special case, no Konto means rest is privatentnahme
             if (G_SETTINGS.bSKR04) {
                 Konto := C_KONTO_PRIVATENNAHMEN_SKR4
@@ -288,6 +315,9 @@ Class Automation {
 
         ; lets settle everything in
         Sleep 1000
+        if (!this.CheckExeFocus()) {
+            return false
+        }
 
         ; check if Konto was successfull, by checking if Verwendung does exist:
         ControlGet, CtrlHwnd, Hwnd,, %C_CTRL_VERWENDUNG_CLASSNN%, ahk_class %C_WIN_BUCHUNG_ZORDNUNG_CLASS%
@@ -305,13 +335,17 @@ Class Automation {
         Send, {Tab 2} ; Verwendung
         if (Verwendung) {
             G_LOGGER.Debug("SplittbuchungSteuerkategorie -> Setze Verwendung...")
-            this.SendVerwendung(Verwendung)
+            if (!this.SendVerwendung(Verwendung)) {
+                return false
+            }
         }
 
         if (Steuersatz) {
             G_LOGGER.Debug("SplittbuchungSteuerkategorie -> Setze Steuersatz")
             Send, {Tab 2} ; Steuersatz
-            this.SendSteuersatz(Steuersatz)
+            if (!this.SendSteuersatz(Steuersatz)) {
+                return false
+            }
         }
 
         ; lets settle everything in
@@ -327,23 +361,13 @@ Class Automation {
         return true
     }
 
-    ; Send Steuersatz (requires focus of input field)
-    SendSteuersatz(index) {
-        G_LOGGER.Debug("SendSteuersatz -> index:" . index)
-
-        if (!this.CheckExeFocus()) {
+    ; (private) Logic of set a Verwendung for a Zahlung
+    _AutomateVerwendung(Verwendung, SplittIndex := -1) {
+        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung() || !Verwendung) {
             return false
         }
 
-        Send, % C_STEUERN_ARR[index]
-        Sleep, 500
-        Send, {enter}
-        G_LOGGER.Debug("SendSteuersatz -> " . C_STEUERN_ARR[index] . " done")
-    }
-
-    ; Set a Verwendung for a Zahlung
-    ExecuteVerwendung(Verwendung, SplittIndex := -1) {
-        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung() || !Verwendung) {
+        if (!this.SetProcessing(true, "Setze Verwendung '" . Verwendung . "'")) {
             return false
         }
 
@@ -383,16 +407,72 @@ Class Automation {
         }
 
         this.SendVerwendung(Verwendung)
-        this.SendOk()
+        success := this.SendOk()
 
-        if (SplittIndex > -1) {
+        if (success && SplittIndex > -1) {
             ; If it's a Splittbuchung, we must close two windows
             if (!WaitForZahlungWindow()) {
                 return false
             }
             Sleep, 1000
-            this.SendOk()
+            success := this.SendOk()
         }
+
+        return success
+    }
+
+    ; (private) Logic to set a Belegnummer for a Zahlung
+    _AutomateBelegnummer(Belegnummer) {
+        G_LOGGER.Debug("BelegnummerSetzen...")
+
+        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung() || !Belegnummer ) {
+            return false
+        }
+
+        if (!this.SetProcessing(true, "Setze Belegnummer '" . Belegnummer . "'...")) {
+            return false
+        }
+
+        Send, {F11}
+        G_LOGGER.Debug("BelegnummerSetzen -> öffne Bearbeiten")
+        if (!WaitForZahlungWindow()) {
+            return false
+        }
+
+        ; Try to focus Belegnummer
+        ControlFocus, %C_CTRL_BELEGNUMMER_CLASSNN%, ahk_class %C_WIN_ZAHLUNG_CLASS%
+        ControlGetFocus, FocusControl, ahk_class %C_WIN_ZAHLUNG_CLASS%
+        if (ErrorLevel or FocusControl != C_CTRL_BELEGNUMMER_CLASSNN) {
+            G_LOGGER.Debug(FocusControl . " != " . C_CTRL_BELEGNUMMER_CLASSNN)
+            ErrorMessage("Belegnummer ist nicht fokusiert, bitte diesen Fehler reporten mit Details!")
+            return false
+        }
+
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
+        SetKeyDelay, 50
+        Send, %Belegnummer%
+        SetKeyDelay, %G_DEFAULT_DELAY%
+        Send, {Enter}
+
+        return this.SendOk()
+    }
+
+    ; Send Steuersatz (requires focus of input field)
+    SendSteuersatz(index) {
+        G_LOGGER.Debug("SendSteuersatz -> index:" . index)
+
+        if (!this.CheckExeFocus()) {
+            return false
+        }
+
+        Send, % C_STEUERN_ARR[index]
+        Sleep, 500
+        Send, {enter}
+        G_LOGGER.Debug("SendSteuersatz -> " . C_STEUERN_ARR[index] . " done")
+        return true
     }
 
     ; Send Verwendung (must be focused already)
@@ -414,41 +494,7 @@ Class Automation {
         SetKeyDelay, %G_DEFAULT_DELAY%
         Send, {Enter}
         Sleep, 1000
-    }
-
-    ; Set a Belegnummer for a Zahlung
-    ExecuteBelegnummer(Belegnummer) {
-        G_LOGGER.Debug("BelegnummerSetzen...")
-        if (IsZuordnungsAssistent() || !FocusWindowMB() || !HasFocusZahlung() || !Belegnummer ) {
-            return false
-        }
-
-        Send, {F11}
-        G_LOGGER.Debug("BelegnummerSetzen -> öffne Bearbeiten")
-        if (!WaitForZahlungWindow()) {
-            return false
-        }
-
-        ; Try to focus Belegnummer
-        ControlFocus, %C_CTRL_BELEGNUMMER_CLASSNN%, ahk_class %C_WIN_ZAHLUNG_CLASS%
-        ControlGetFocus, FocusControl, ahk_class %C_WIN_ZAHLUNG_CLASS%
-        if (ErrorLevel or FocusControl != C_CTRL_BELEGNUMMER_CLASSNN) {
-
-            G_LOGGER.Debug(FocusControl . " != " . C_CTRL_BELEGNUMMER_CLASSNN)
-            ErrorMessage("Belegnummer ist nicht fokusiert, bitte diesen Fehler reporten mit Details!")
-            return false
-        }
-
-        if (!this.CheckExeFocus()) {
-            return false
-        }
-
-        SetKeyDelay, 50
-        Send, %Belegnummer%
-        SetKeyDelay, %G_DEFAULT_DELAY%
-        Send, {Enter}
-
-        this.SendOk()
+        return true
     }
 
     ; Send OK via F11 and optionally ignores the warning
@@ -470,6 +516,7 @@ Class Automation {
         }
 
         G_LOGGER.Debug("SendOk... done")
+        return true
     }
 
     ; Checks if MB is unfocused and abort automation
@@ -486,7 +533,6 @@ Class Automation {
         }
 
         WarnMessage("MB war nicht mehr fokusiert. Automatisierung wurde abgebrochen!")
-        this.SetProcessing(false)
         return false
     }
 }

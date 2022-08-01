@@ -5,11 +5,11 @@ Dieses AutoHotkey Script erlaubt eine Teilautomatisierung von `WISO MeinBüro De
 
 ## Installation
 
-Skript manuell kompilieren bzw. ausführen oder die vorhandene `mb-automation-ahk.exe` runterladen und ausführen
+Skript (`mb-automation.ahk`) manuell kompilieren bzw. ausführen oder die vorhandene `mb-automation-ahk.exe` unter [Releases](/releases) runterladen und ausführen.
 
-Sollte MB nicht auf dem Rechner ausgeführt werden, sondern über Remote Desktop verwendet werden, muss die *.exe rüberkopiert und auf dem Host System ausgeführt werden.
+Sollte MB nicht auf dem Rechner ausgeführt werden, sondern über Remote Desktop verwendet werden, muss das Skript / exe und auf dem Host System ausgeführt werden!
 
-Das Skript wurde für den Remote Desktop entwickelt. (MB läuft auf einer Synology VM und ist langsam / träge)
+> Das Skript wurde für den Remote Desktop entwickelt. (MB läuft auf einer Synology VM und ist langsam / träge)
 
 ## Features
 
@@ -19,7 +19,7 @@ Das Skript wurde für den Remote Desktop entwickelt. (MB läuft auf einer Synolo
 * Splittbuchung Wizard: X-beliebige Anzahl an Splittbuchungen mit Betrag angabe, inklusive Restbetrag Funktion
 * Erstellen und speichern von Favoriten / Templates (bsp. Internet Rechnung, Serverkosten, etc.)
 * Kategorien (`STRG + SHIFT + K`) & Belegnummer ändern (Hotkey verfügbar)
-* Bitte Keine Werbung Modus (keine nervigen Werbung Fenster mehr)
+* "Bitte Keine Werbung"-Modus (schließt automatisch das Werbung-Fenster - keine nervigen Werbung Fenster mehr)
 * `STRG + SHIFT + V` zum einfügen von Werten mit Euro, Punkt und Leerzeichen (weil MB das in manchen Feldern nicht mag...)
 
 ### Limitierung
@@ -27,7 +27,8 @@ Das Skript wurde für den Remote Desktop entwickelt. (MB läuft auf einer Synolo
 * Während der Automatisierung darf nichts anderes unternommen werden
   * schon ein Maus bewegen könnte am Anfang zu Fehlern führen 
 * Das Skript führt Mausbewegungen und Tastenkombinationen aus, wenn währenddessen vom Benutzer eine Aktion gemacht wird, kann es zu Fehlern kommen
-    * Im Fall der Fälle kann mittels `ESC`-Taste das Programm & aktive Automation gestoppt werden (reload) oder mit `STRG + ESC` beendet werden
+    * Im Fall der Fälle kann mittels `ESC`-Taste eine aktive Automatisierung gestoppt werden (reload)
+    * Via `SHIFT + ESC` kann das Programm komplett beendet werden
 
 ### (Splitt-) Buchung durchführen
 * Automatisiert aus Favoriten oder Quick, kann eine Zahlung schnell gebucht werden

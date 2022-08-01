@@ -37,10 +37,8 @@ class GuiMain
 
         ; -- Processing
         this.controls.processing := []
-        txt := "`n`nAutomatisierung ist aktiv... bitte warten und nicht interagieren!`n"
-        txt := txt . "(" . G_AUTOMATION.ProcessingTask . ")`n`n"
-
-        Gui, Main:Add, Text, Center w450 hwndCtlText, % txt
+        Gui, Main:Add, Text, Center w450 hwndCtlText,
+        this.controls.processing_text := CtlText
         this.controls.processing.Push(CtlText)
         GuiControl, Main:Hide, % CtlText
 
@@ -209,23 +207,30 @@ class GuiMain
     }
 
     ; Shows a processing info text instead of Main GUI
-    ShowProcessing(hide := true) {
-        GuiControl, % "Main:" . (hide ? "Hide" : "Show"), % this.controls.tab
-        GuiControl, % "Main:" . (hide ? "Hide" : "Show"), % this.controls.btn_edit
+    ShowProcessing(show := true) {
+        GuiControl, % "Main:" . (show ? "Hide" : "Show"), % this.controls.tab
+        GuiControl, % "Main:" . (show ? "Hide" : "Show"), % this.controls.btn_edit
 
         for i, ctrl in this.controls.processing {
-            GuiControl, % "Main:" . (!hide ? "Hide" : "Show"), % ctrl
+            GuiControl, % "Main:" . (!show ? "Hide" : "Show"), % ctrl
         }
 
         Gui, % this.scrollWindow.HWND ":Hide"
 
-        w := hide ? 450 : this.old.w
-        h := hide ? 200 :this.old.h
+        w := show ? 450 : this.old.w
+        h := show ? 200 : this.old.h
+
+        if (show) {
+            txt := "Automatisierung ist aktiv... bitte warten und nicht interagieren!`n"
+            txt := txt . "(" . G_AUTOMATION.ProcessingTask . ")"
+            GuiControl, Text, % this.controls.processing_text, % txt
+            GuiControl, MoveDraw, % this.controls.processing_text, h30
+        }
 
         ; idk why but we must increment by one and later remove 1 to make it resize properly
         this.scrollWindow.Width := w+1
         this.scrollWindow.Height := h+1
-        this.scrollWindow.Show("MB Automation - " . G_APP.version, Format("x{1} y{2}", this.old.x, this.old.y))
+        this.scrollWindow.Show("MB Automation - " . G_APP.version, Format("x{1} y{2} NA NoActivate", this.old.x, this.old.y))
         this.scrollWindow.AdjustToChild()
         this.scrollWindow.Size(w, h)
     }
