@@ -2,7 +2,7 @@
 
 ## Documentation
 
-View the [Wiki](/wiki) 
+View the [Wiki](https://github.com/DolphBit/mb-automation-ahk/wiki) 
 
 ## Ask a question
 

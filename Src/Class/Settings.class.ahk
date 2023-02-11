@@ -110,6 +110,13 @@ Class Settings {
             return
         }
 
+        ; failsafe, to only try to close the window once
+        ; otherwise we would eventually click a button way to often and do something stupid...
+        ; requires to have the ad window to disappear, before it can be closed again
+        if (this.triedToCloseAdWindow) {
+            return
+        }
+
         ControlGet, CtrlButton, Hwnd,, %C_CTRL_AD_CLOSE_CLASSNN%, ahk_class %C_WIN_AD_CLASS%
         if ErrorLevel {
             G_LOGGER.Debug("Found ad window but can't find the close button!")
@@ -117,11 +124,6 @@ Class Settings {
             return
         }
 
-        ; failsafe, to only try to close the window once
-        ; otherwise we would eventually click a button way to often and do something stupid...
-        if (this.triedToCloseAdWindow) {
-            return
-        }
         this.triedToCloseAdWindow := true
 
         G_LOGGER.Debug("Try to close ad window now...")

@@ -15,3 +15,4 @@ Planned changes, improvements, features, fixes, etc.
 ## Eventually
 
 - [ ] Evaluate https://github.com/G33kDude/Neutron.ahk/ for the future
+- [ ] Gitlab Actions https://github.com/CEnnis91/action-ahk2exe/blob/main/action.yaml + https://github.com/nektos/act

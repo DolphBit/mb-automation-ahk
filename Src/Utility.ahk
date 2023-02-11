@@ -21,11 +21,24 @@ HasExeFocus()
 ; Focus the application window - will alert if not found
 FocusWindowMB()
 {
-    WinActivate, %C_WINDOW_MAIN_TITLE%,,,
-    if !(WinActive(C_WINDOW_MAIN_TITLE)) {
+    def := A_TitleMatchMode
+
+    windowTitle := False
+    if (WinExist(C_WINDOW_MAIN_TITLE_22)) {
+        windowTitle := C_WINDOW_MAIN_TITLE_22
+    } else if (WinExist(C_WINDOW_MAIN_TITLE_23)) {
+        windowTitle := C_WINDOW_MAIN_TITLE_23
+    }
+
+    if (windowTitle) {
+        WinActivate, %windowTitle%,,,
+    }
+
+    if (!windowTitle || !WinActive(windowTitle)) {
         ErrorMessage("MB konnte nicht gefunden werden!")
         return false
     }
+
     return true
 }
 

@@ -52,13 +52,13 @@ Die exe kann mit folgenden Argumenten gestartet werden
 
 ## Unterstützte Versionen
 
-Mit Version `22.01.02.001` (Stand Juli 2022) getestet.
+Mit Version `23.01.02.002` (Stand Februar 2023) getestet.
 
 Neuere Versionen *können* zu Fehlern führen (unwahrscheinlich) aber ggf. ändern sich Name oder Layout wodurch die Anwendung aktualisiert werden muss.
  
 ## Hilfe / Support
 
-Siehe [Wiki Dokumentation](/wiki) und [SUPPORT](/SUPPORT.md)
+Siehe [Wiki Dokumentation](https://github.com/DolphBit/mb-automation-ahk/wiki) und [SUPPORT](/SUPPORT.md)
 
 ## Changelog
 

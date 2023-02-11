@@ -4,7 +4,8 @@
 global CONST := {}
 
 ; MB window Identifiers
-global C_WINDOW_MAIN_TITLE := "Mein Büro"
+global C_WINDOW_MAIN_TITLE_22 := "Mein Büro"
+global C_WINDOW_MAIN_TITLE_23 := "WISO MeinBüro"
 global C_EXE_MAIN := "MB.exe"
 global C_WIN_MAIN_CLASS := "TFormMain"
 
@@ -71,7 +72,7 @@ global C_VERWENDUNGEN_KEINE_ANGABE := "(keine Angabe)"
 global C_STEUERN := ("5,00 `% Umsatzsteuer|7,00 `% Umsatzsteuer|16,00 `% Umsatzsteuer|19,00 `% Umsatzsteuer
     |---|5,00 `% Vorsteuer|5,50 `% Vorsteuer|7,00 `% Vorsteuer|9,00 `% Vorsteuer
     |9,50 `% Vorsteuer|10,70 `% Vorsteuer|16,00 `% Vorsteuer|19,00 `% Vorsteuer
-|0,00 `%|5,00 `%|5,50 `%|7,00 `%|9,00 `%|9,50 `%|10,70 `%|16,00 `%|19,00 `%")
+    |0,00 `%|5,00 `%|5,50 `%|7,00 `%|9,00 `%|9,50 `%|10,70 `%|16,00 `%|19,00 `%")
 
 global C_STEUERN_ARR := StrSplit(C_STEUERN, "|")
 
